@@ -10,6 +10,11 @@ pipeline {
         SECRETS_DIR = '/var/jenkins_home/secrets'
         BUILD_DIR = "${WORKSPACE}/build"
         MW_DIR = "${BUILD_DIR}/mediawiki"
+
+        // NFS deployment target (not secrets)
+        NFS_HOST = 'ssh.nyc1.nearlyfreespeech.net'
+        NFS_USER = 'jmyles_pickipedia'  // TODO: confirm this username
+        NFS_PATH = '/home/public'
     }
 
     stages {
@@ -22,14 +27,6 @@ pipeline {
                         chmod 600 LocalSettings.local.php
                     else
                         echo "ERROR: LocalSettings.local.php not found in secrets"
-                        exit 1
-                    fi
-
-                    # Load NFS credentials
-                    if [ -f "${SECRETS_DIR}/pickipedia/nfs.env" ]; then
-                        source "${SECRETS_DIR}/pickipedia/nfs.env"
-                    else
-                        echo "ERROR: nfs.env not found in secrets"
                         exit 1
                     fi
                 '''
@@ -105,9 +102,6 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                     set -e
-
-                    # Load NFS credentials
-                    source "${SECRETS_DIR}/pickipedia/nfs.env"
 
                     echo "Deploying to ${NFS_USER}@${NFS_HOST}:${NFS_PATH}"
 
