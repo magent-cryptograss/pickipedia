@@ -1,0 +1,48 @@
+# PickiPedia Preview Environment
+# Run on hunter to test MediaWiki upgrades before deploying to NFS
+#
+# Usage:
+#   docker-compose up -d
+#   # Access at http://hunter.cryptograss.live:8080 (or configured port)
+#
+# To test a different MediaWiki version:
+#   MEDIAWIKI_VERSION=1.44.0 docker-compose up -d --build
+
+services:
+  wiki:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MEDIAWIKI_VERSION: ${MEDIAWIKI_VERSION:-1.43.0}
+    ports:
+      - "${WIKI_PORT:-8888}:80"
+    environment:
+      - MEDIAWIKI_DB_TYPE=mysql
+      - MEDIAWIKI_DB_HOST=db
+      - MEDIAWIKI_DB_NAME=${DB_NAME:-pickipedia}
+      - MEDIAWIKI_DB_USER=${DB_USER:-pickipedia}
+      - MEDIAWIKI_DB_PASSWORD=${DB_PASSWORD:-changeme}
+    volumes:
+      - ./LocalSettings.php:/var/www/html/LocalSettings.php:ro
+      - ./LocalSettings.local.php:/var/www/html/LocalSettings.local.php:ro
+      - ./extensions:/var/www/html/custom-extensions:ro
+      - wiki-images:/var/www/html/images
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=${DB_NAME:-pickipedia}
+      - MYSQL_USER=${DB_USER:-pickipedia}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-changeme}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootchangeme}
+    volumes:
+      - db-data:/var/lib/mysql
+    restart: unless-stopped
+
+volumes:
+  wiki-images:
+  db-data:
