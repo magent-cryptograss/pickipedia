@@ -94,9 +94,9 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                     # Copy any custom extensions we've developed
-                    if [ -d "extensions" ] && [ -n "$(ls -A extensions 2>/dev/null)" ]; then
+                    if [ -d "${WORKSPACE}/extensions" ] && [ -n "$(ls -A ${WORKSPACE}/extensions 2>/dev/null)" ]; then
                         echo "Copying custom extensions..."
-                        cp -r extensions/* "${MW_DIR}/extensions/"
+                        cp -r "${WORKSPACE}/extensions/"* "${MW_DIR}/extensions/"
                     else
                         echo "No custom extensions to copy"
                     fi
