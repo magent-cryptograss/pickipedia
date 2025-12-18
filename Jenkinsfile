@@ -69,12 +69,9 @@ pipeline {
                     # Copy composer.json as composer.local.json for MediaWiki
                     cp composer.json "${MW_DIR}/composer.local.json"
 
-                    # Install composer dependencies using PHP container
-                    docker run --rm \
-                        -v "${MW_DIR}:/app" \
-                        -w /app \
-                        composer:2 \
-                        composer update --no-dev --optimize-autoloader
+                    # Install composer dependencies
+                    cd "${MW_DIR}"
+                    composer update --no-dev --optimize-autoloader
                 '''
             }
         }
