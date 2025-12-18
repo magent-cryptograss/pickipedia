@@ -76,6 +76,20 @@ pipeline {
             }
         }
 
+        stage('Install Non-Composer Extensions') {
+            steps {
+                sh '''#!/bin/bash
+                    set -e
+                    cd "${MW_DIR}/extensions"
+
+                    # YouTube extension (not on Packagist)
+                    if [ ! -d "YouTube" ]; then
+                        git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-YouTube.git YouTube
+                    fi
+                '''
+            }
+        }
+
         stage('Copy Custom Extensions') {
             steps {
                 sh '''#!/bin/bash
