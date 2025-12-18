@@ -1,7 +1,13 @@
 {
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/StarCitizenWiki/mediawiki-extensions-EmbedVideo.git"
+        }
+    ],
     "require": {
         "mediawiki/semantic-media-wiki": "~4.2",
-        "mediawiki/embed-video": "^3.0"
+        "starcitizenwiki/embedvideo": "^3.0"
     },
     "config": {
         "allow-plugins": {
