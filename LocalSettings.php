@@ -71,8 +71,8 @@ $wgGroupPermissions['*']['read'] = true;
 wfLoadExtension( 'SemanticMediaWiki' );
 enableSemantics( parse_url($wgServer, PHP_URL_HOST) );
 
-# EmbedVideo - for embedding YouTube, etc.
-wfLoadExtension( 'EmbedVideo' );
+# YouTube - for embedding YouTube videos
+wfLoadExtension( 'YouTube' );
 
 ## Email (disabled by default)
 $wgEnableEmail = false;

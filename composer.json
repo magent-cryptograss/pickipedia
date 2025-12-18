@@ -1,7 +1,9 @@
 {
     "require": {
-        "mediawiki/semantic-media-wiki": "~4.2"
+        "mediawiki/semantic-media-wiki": "dev-master"
     },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "config": {
         "allow-plugins": {
             "composer/installers": true,

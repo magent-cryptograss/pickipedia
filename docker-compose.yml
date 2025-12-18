@@ -7,6 +7,10 @@
 #
 # To test a different MediaWiki version:
 #   MEDIAWIKI_VERSION=1.44.0 docker-compose up -d --build
+#
+# When running from inside a container (e.g. magent containers on hunter),
+# set PICKIPEDIA_DIR to the host path of this directory:
+#   PICKIPEDIA_DIR=/opt/magenta/justin/home/workspace/pickipedia docker compose up -d
 
 services:
   wiki:
@@ -24,16 +28,16 @@ services:
       - MEDIAWIKI_DB_USER=${DB_USER:-pickipedia}
       - MEDIAWIKI_DB_PASSWORD=${DB_PASSWORD:-changeme}
     volumes:
-      - ./LocalSettings.php:/var/www/html/LocalSettings.php:ro
-      - ./LocalSettings.local.php:/var/www/html/LocalSettings.local.php:ro
-      - ./extensions:/var/www/html/custom-extensions:ro
+      - ${PICKIPEDIA_DIR:-.}/LocalSettings.php:/var/www/html/LocalSettings.php:ro
+      - ${PICKIPEDIA_DIR:-.}/LocalSettings.local.php:/var/www/html/LocalSettings.local.php:ro
+      - ${PICKIPEDIA_DIR:-.}/extensions:/var/www/html/custom-extensions:ro
       - wiki-images:/var/www/html/images
     depends_on:
       - db
     restart: unless-stopped
 
   db:
-    image: mysql:8.0
+    image: mariadb:11
     environment:
       - MYSQL_DATABASE=${DB_NAME:-pickipedia}
       - MYSQL_USER=${DB_USER:-pickipedia}

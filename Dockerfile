@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
         opcache \
         gd \
         zip \
+        calendar \
     && rm -rf /var/lib/apt/lists/*
 
 # Install composer
@@ -43,6 +44,9 @@ COPY composer.json /var/www/html/composer.local.json
 # Install extensions via composer
 WORKDIR /var/www/html
 RUN composer update --no-dev --optimize-autoloader
+
+# Install YouTube extension (not available via Composer)
+RUN git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-YouTube.git extensions/YouTube
 
 # Copy custom extensions (if any)
 COPY extensions/ /var/www/html/custom-extensions/
