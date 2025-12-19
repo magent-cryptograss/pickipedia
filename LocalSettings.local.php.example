@@ -16,3 +16,8 @@ $wgDBserver = "localhost";
 $wgDBname = "pickipedia";
 $wgDBuser = "pickipedia";
 $wgDBpassword = "your-db-password-here";
+
+## For preview/dev environments, override the server URL and add a banner:
+// $wgServer = "http://hunter.cryptograss.live:4005";
+// $wgSiteNotice = '<div style="background: #ffcc00; color: #000; padding: 10px; text-align: center; font-weight: bold; border: 2px solid #cc9900; margin-bottom: 10px;">PREVIEW ENVIRONMENT - Changes will NOT be saved.</div>';
+// $wgShowExceptionDetails = true;

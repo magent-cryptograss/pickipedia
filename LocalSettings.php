@@ -47,12 +47,13 @@ $wgUseInstantCommons = true;
 
 ## Logos
 $wgLogos = [
-    '1x' => "$wgResourceBasePath/resources/assets/wiki.png",
+    '1x' => "$wgResourceBasePath/assets/logo.png",
 ];
 
 ## Skins
+wfLoadSkin( 'MonoBook' );
 wfLoadSkin( 'Vector' );
-$wgDefaultSkin = "vector";
+$wgDefaultSkin = "monobook";
 
 ## Rights
 $wgRightsPage = "";
@@ -71,8 +72,8 @@ $wgGroupPermissions['*']['read'] = true;
 wfLoadExtension( 'SemanticMediaWiki' );
 enableSemantics( parse_url($wgServer, PHP_URL_HOST) );
 
-# EmbedVideo - for embedding YouTube, etc.
-wfLoadExtension( 'EmbedVideo' );
+# YouTube - for embedding YouTube videos
+wfLoadExtension( 'YouTube' );
 
 ## Email (disabled by default)
 $wgEnableEmail = false;

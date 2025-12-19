@@ -1,0 +1,10 @@
+# Short URL rewrite for MediaWiki
+# Maps /wiki/Page_Name to index.php
+
+RewriteEngine On
+
+# Short URL for wiki pages
+RewriteRule ^wiki/(.*)$ %{DOCUMENT_ROOT}/index.php [L]
+
+# Redirect /wiki to Main_Page
+RewriteRule ^wiki/*$ %{DOCUMENT_ROOT}/index.php [L]

@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
         opcache \
         gd \
         zip \
+        calendar \
     && rm -rf /var/lib/apt/lists/*
 
 # Install composer
@@ -44,11 +45,18 @@ COPY composer.json /var/www/html/composer.local.json
 WORKDIR /var/www/html
 RUN composer update --no-dev --optimize-autoloader
 
+# Install YouTube extension (not available via Composer)
+RUN git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-YouTube.git extensions/YouTube
+
 # Copy custom extensions (if any)
 COPY extensions/ /var/www/html/custom-extensions/
 
-# Apache configuration
+# Copy custom assets (logo, etc.)
+COPY assets/ /var/www/html/assets/
+
+# Apache configuration - enable rewrite and AllowOverride for .htaccess
 RUN a2enmod rewrite
+RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 RUN chown -R www-data:www-data /var/www/html
 
 # PHP configuration for MediaWiki
