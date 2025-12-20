@@ -47,12 +47,13 @@ $wgUseInstantCommons = true;
 
 ## Logos
 $wgLogos = [
-    '1x' => "$wgResourceBasePath/resources/assets/wiki.png",
+    '1x' => "$wgResourceBasePath/assets/logo.png",
 ];
 
 ## Skins
+wfLoadSkin( 'MonoBook' );
 wfLoadSkin( 'Vector' );
-$wgDefaultSkin = "vector";
+$wgDefaultSkin = "monobook";
 
 ## Rights
 $wgRightsPage = "";
@@ -71,8 +72,19 @@ $wgGroupPermissions['*']['read'] = true;
 wfLoadExtension( 'SemanticMediaWiki' );
 enableSemantics( parse_url($wgServer, PHP_URL_HOST) );
 
-# EmbedVideo - for embedding YouTube, etc.
-wfLoadExtension( 'EmbedVideo' );
+# YouTube - for embedding YouTube videos
+wfLoadExtension( 'YouTube' );
+
+# WikiEditor - enhanced editing toolbar (bundled with MediaWiki)
+wfLoadExtension( 'WikiEditor' );
+
+# MsUpload - drag-and-drop multiple file upload in edit page
+wfLoadExtension( 'MsUpload' );
+$wgMSU_useDragDrop = true;
+$wgMSU_showAutoCat = true;
+$wgMSU_checkAutoCat = true;
+$wgMSU_imgParams = '400px';
+$wgMSU_uploadsize = '100mb';
 
 ## Email (disabled by default)
 $wgEnableEmail = false;
@@ -82,3 +94,27 @@ $wgEnableUserEmail = false;
 $wgShowExceptionDetails = false;
 $wgShowDBErrorBacktrace = false;
 $wgShowSQLErrors = false;
+
+## Build info footer (generated at build time)
+if ( file_exists( __DIR__ . '/build-info.php' ) ) {
+    require_once __DIR__ . '/build-info.php';
+    if ( isset( $wgPickipediaBuildInfo ) && $wgPickipediaBuildInfo['blockheight'] > 0 ) {
+        $blockheight = number_format( $wgPickipediaBuildInfo['blockheight'] );
+        $commit = $wgPickipediaBuildInfo['commit'];
+        $wgFooterIcons['poweredby']['pickipedia-build'] = [
+            'src' => '',
+            'url' => "https://etherscan.io/block/{$wgPickipediaBuildInfo['blockheight']}",
+            'alt' => "Built at block {$blockheight}",
+            'height' => false,
+            'width' => false,
+        ];
+        // Also add to site notice / footer text
+        $wgHooks['SkinAfterContent'][] = function ( &$data, $skin ) use ( $blockheight, $commit ) {
+            $data .= "<div style='text-align: center; font-size: 0.8em; color: #666; padding: 5px;'>"
+                . "Built at Ethereum block <a href='https://etherscan.io/block/{$GLOBALS['wgPickipediaBuildInfo']['blockheight']}'>{$blockheight}</a>"
+                . " | commit {$commit}"
+                . "</div>";
+            return true;
+        };
+    }
+}

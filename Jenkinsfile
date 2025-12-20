@@ -76,22 +76,109 @@ pipeline {
             }
         }
 
-        stage('Copy Custom Extensions') {
+        stage('Install Non-Composer Extensions') {
             steps {
                 sh '''#!/bin/bash
-                    # Copy any custom extensions we've developed
-                    if [ -d "extensions" ] && [ -n "$(ls -A extensions 2>/dev/null)" ]; then
-                        echo "Copying custom extensions..."
-                        cp -r extensions/* "${MW_DIR}/extensions/"
-                    else
-                        echo "No custom extensions to copy"
+                    set -e
+                    cd "${MW_DIR}/extensions"
+
+                    # YouTube extension (not on Packagist)
+                    if [ ! -d "YouTube" ]; then
+                        git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-YouTube.git YouTube
+                    fi
+
+                    # MsUpload - drag-and-drop multiple file upload
+                    if [ ! -d "MsUpload" ]; then
+                        git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-MsUpload.git MsUpload
                     fi
                 '''
             }
         }
 
-        // TODO: Add production deploy stage once hunter preview is working
-        // Will use marker-file pattern like justinholmes.com for security
+        stage('Copy Custom Extensions') {
+            steps {
+                sh '''#!/bin/bash
+                    # Copy any custom extensions we've developed
+                    if [ -d "${WORKSPACE}/extensions" ]; then
+                        echo "Copying custom extensions..."
+                        cp -r "${WORKSPACE}/extensions/"* "${MW_DIR}/extensions/" 2>/dev/null || echo "No custom extensions found"
+                    else
+                        echo "No custom extensions directory"
+                    fi
+                '''
+            }
+        }
+
+        stage('Copy Assets') {
+            steps {
+                sh '''#!/bin/bash
+                    set -e
+                    # Copy logo and other assets
+                    if [ -d "${WORKSPACE}/assets" ]; then
+                        mkdir -p "${MW_DIR}/assets"
+                        cp -r "${WORKSPACE}/assets/"* "${MW_DIR}/assets/"
+                    fi
+                '''
+            }
+        }
+
+        stage('Generate Build Info') {
+            steps {
+                sh '''#!/bin/bash
+                    set -e
+
+                    # Fetch current Ethereum mainnet block height from Blockscout
+                    echo "Fetching current Ethereum block height..."
+                    BLOCK_HEIGHT=$(curl -s "https://eth.blockscout.com/api/v2/blocks?type=block" | grep -o '"height":[0-9]*' | head -1 | cut -d: -f2)
+
+                    if [ -n "$BLOCK_HEIGHT" ] && [ "$BLOCK_HEIGHT" -gt 0 ] 2>/dev/null; then
+                        echo "Current block height: ${BLOCK_HEIGHT}"
+                    else
+                        echo "Warning: Could not fetch block height, using 0"
+                        BLOCK_HEIGHT=0
+                    fi
+
+                    # Generate build-info.php
+                    cat > "${MW_DIR}/build-info.php" << PHPEOF
+<?php
+// Auto-generated at build time - do not edit
+\$wgPickipediaBuildInfo = [
+    'blockheight' => ${BLOCK_HEIGHT},
+    'build_number' => '${BUILD_NUMBER}',
+    'commit' => '$(git rev-parse --short HEAD)',
+    'build_time' => '$(date -Iseconds)',
+];
+PHPEOF
+                    echo "Generated build-info.php with block ${BLOCK_HEIGHT}"
+                '''
+            }
+        }
+
+        stage('Stage for Deploy') {
+            when {
+                branch 'production'
+            }
+            steps {
+                sh '''#!/bin/bash
+                    set -e
+
+                    STAGE_DIR="/var/jenkins_home/pickipedia_stage"
+                    MARKER_FILE="${STAGE_DIR}/.deploy-ready"
+
+                    echo "Staging build to ${STAGE_DIR}..."
+                    mkdir -p "${STAGE_DIR}"
+
+                    # Rsync the built MediaWiki to staging
+                    rsync -av --delete "${MW_DIR}/" "${STAGE_DIR}/"
+
+                    # Create deploy marker
+                    COMMIT_SHA=$(git rev-parse HEAD)
+                    echo "commit=${COMMIT_SHA} build=${BUILD_NUMBER} time=$(date -Iseconds)" > "${MARKER_FILE}"
+
+                    echo "Build staged - deploy marker created"
+                '''
+            }
+        }
     }
 
     post {
