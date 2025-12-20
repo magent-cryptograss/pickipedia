@@ -155,9 +155,8 @@ PHPEOF
         }
 
         stage('Stage for Deploy') {
-            when {
-                branch 'production'
-            }
+            // Note: This job only builds production branch (configured in job definition)
+            // so no branch conditional needed
             steps {
                 sh '''#!/bin/bash
                     set -e
