@@ -45,8 +45,9 @@ COPY composer.json /var/www/html/composer.local.json
 WORKDIR /var/www/html
 RUN composer update --no-dev --optimize-autoloader
 
-# Install YouTube extension (not available via Composer)
-RUN git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-YouTube.git extensions/YouTube
+# Install extensions not available via Composer
+RUN git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-YouTube.git extensions/YouTube \
+    && git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-MsUpload.git extensions/MsUpload
 
 # Copy custom extensions (if any)
 COPY extensions/ /var/www/html/custom-extensions/

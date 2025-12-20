@@ -75,6 +75,17 @@ enableSemantics( parse_url($wgServer, PHP_URL_HOST) );
 # YouTube - for embedding YouTube videos
 wfLoadExtension( 'YouTube' );
 
+# WikiEditor - enhanced editing toolbar (bundled with MediaWiki)
+wfLoadExtension( 'WikiEditor' );
+
+# MsUpload - drag-and-drop multiple file upload in edit page
+wfLoadExtension( 'MsUpload' );
+$wgMSU_useDragDrop = true;
+$wgMSU_showAutoCat = true;
+$wgMSU_checkAutoCat = true;
+$wgMSU_imgParams = '400px';
+$wgMSU_uploadsize = '100mb';
+
 ## Email (disabled by default)
 $wgEnableEmail = false;
 $wgEnableUserEmail = false;
