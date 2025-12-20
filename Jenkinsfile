@@ -19,7 +19,7 @@ pipeline {
                     # Copy LocalSettings.local.php from secrets
                     if [ -f "${SECRETS_DIR}/pickipedia/LocalSettings.local.php" ]; then
                         cp "${SECRETS_DIR}/pickipedia/LocalSettings.local.php" LocalSettings.local.php
-                        chmod 600 LocalSettings.local.php
+                        chmod 644 LocalSettings.local.php
                     else
                         echo "ERROR: LocalSettings.local.php not found in secrets"
                         exit 1
