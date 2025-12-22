@@ -78,6 +78,9 @@ wfLoadExtension( 'YouTube' );
 # WikiEditor - enhanced editing toolbar (bundled with MediaWiki)
 wfLoadExtension( 'WikiEditor' );
 
+# MultimediaViewer - modern lightbox for images (bundled with MediaWiki)
+wfLoadExtension( 'MultimediaViewer' );
+
 # MsUpload - drag-and-drop multiple file upload in edit page
 wfLoadExtension( 'MsUpload' );
 $wgMSU_useDragDrop = true;
