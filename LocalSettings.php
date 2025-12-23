@@ -75,6 +75,9 @@ enableSemantics( parse_url($wgServer, PHP_URL_HOST) );
 # YouTube - for embedding YouTube videos
 wfLoadExtension( 'YouTube' );
 
+# ParserFunctions - {{#if:}}, {{#switch:}}, etc. for templates (bundled with MediaWiki)
+wfLoadExtension( 'ParserFunctions' );
+
 # WikiEditor - enhanced editing toolbar (bundled with MediaWiki)
 wfLoadExtension( 'WikiEditor' );
 
