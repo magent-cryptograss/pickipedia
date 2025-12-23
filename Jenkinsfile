@@ -155,9 +155,6 @@ PHPEOF
         }
 
         stage('Stage for Deploy') {
-            when {
-                branch 'production'
-            }
             steps {
                 sh '''#!/bin/bash
                     set -e
