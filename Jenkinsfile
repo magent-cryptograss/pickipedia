@@ -71,11 +71,10 @@ pipeline {
                     cp composer.json "${MW_DIR}/composer.local.json"
 
                     # Install composer dependencies
+                    # Delete stale lock file so composer.local.json gets merged properly
                     cd "${MW_DIR}"
+                    rm -f composer.lock
                     composer update --no-dev --optimize-autoloader
-
-                    # Install Semantic MediaWiki (explicit require ensures it's in the lock file)
-                    composer require mediawiki/semantic-media-wiki:^6.0 --update-no-dev --optimize-autoloader
                 '''
             }
         }
