@@ -73,6 +73,9 @@ pipeline {
                     # Install composer dependencies
                     cd "${MW_DIR}"
                     composer update --no-dev --optimize-autoloader
+
+                    # Install Semantic MediaWiki (explicit require ensures it's in the lock file)
+                    composer require mediawiki/semantic-media-wiki:^6.0 --no-dev --optimize-autoloader
                 '''
             }
         }
