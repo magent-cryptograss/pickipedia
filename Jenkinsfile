@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        MEDIAWIKI_VERSION = '1.43.0'
+        MEDIAWIKI_VERSION = '1.45.1'
         SECRETS_DIR = '/var/jenkins_home/secrets'
         BUILD_DIR = "${WORKSPACE}/build"
         MW_DIR = "${BUILD_DIR}/mediawiki"
@@ -91,6 +91,12 @@ pipeline {
                     # MsUpload - drag-and-drop multiple file upload
                     if [ ! -d "MsUpload" ]; then
                         git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-MsUpload.git MsUpload
+                    fi
+
+                    # TimedMediaHandler - video/audio playback with FFmpeg transcoding
+                    if [ ! -d "TimedMediaHandler" ]; then
+                        git clone --depth 1 --branch REL1_45 https://github.com/wikimedia/mediawiki-extensions-TimedMediaHandler.git TimedMediaHandler
+                        cd TimedMediaHandler && composer install --no-dev && cd ..
                     fi
                 '''
             }

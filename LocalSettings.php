@@ -101,6 +101,10 @@ $wgMSU_checkAutoCat = true;
 $wgMSU_imgParams = '400px';
 $wgMSU_uploadsize = '100mb';
 
+# TimedMediaHandler - video/audio playback with transcoding
+wfLoadExtension( 'TimedMediaHandler' );
+$wgFFmpegLocation = '/usr/local/bin/ffmpeg';
+
 ## Email (disabled by default)
 $wgEnableEmail = false;
 $wgEnableUserEmail = false;
