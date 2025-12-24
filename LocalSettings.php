@@ -43,6 +43,11 @@ $wgUseImageMagick = false;
 # GD library is used for thumbnails instead
 $wgMaxImageArea = 50e6;  # 50 megapixels (default is 12.5MP)
 
+# Allow uploads from URLs (e.g., Instagram, external sources)
+$wgAllowCopyUploads = true;
+$wgCopyUploadsFromSpecialUpload = true;
+$wgGroupPermissions['user']['upload_by_url'] = true;
+
 ## InstantCommons allows wiki to use images from commons.wikimedia.org
 $wgUseInstantCommons = true;
 
