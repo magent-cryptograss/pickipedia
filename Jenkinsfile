@@ -71,7 +71,10 @@ pipeline {
                     cp composer.json "${MW_DIR}/composer.local.json"
 
                     # Install composer dependencies
+                    # Delete cached composer state to ensure clean install with merged extensions
                     cd "${MW_DIR}"
+                    rm -f composer.lock
+                    rm -rf vendor
                     composer update --no-dev --optimize-autoloader
                 '''
             }
