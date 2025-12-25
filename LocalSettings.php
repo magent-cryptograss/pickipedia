@@ -113,6 +113,7 @@ $wgEnableUserEmail = false;
 $wgShowExceptionDetails = false;
 $wgShowDBErrorBacktrace = false;
 $wgShowSQLErrors = false;
+$wgDevelopmentWarnings = false;
 
 ## Build info footer (generated at build time)
 if ( file_exists( __DIR__ . '/build-info.php' ) ) {
