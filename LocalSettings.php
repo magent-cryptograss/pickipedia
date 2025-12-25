@@ -115,6 +115,11 @@ $wgShowDBErrorBacktrace = false;
 $wgShowSQLErrors = false;
 $wgDevelopmentWarnings = (getenv('WIKI_DEV_MODE') === 'true');
 
+# Suppress deprecation warnings in production (SMW 6.0 has some with MW 1.45)
+if (getenv('WIKI_DEV_MODE') !== 'true') {
+    error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+}
+
 ## Build info footer (generated at build time)
 if ( file_exists( __DIR__ . '/build-info.php' ) ) {
     require_once __DIR__ . '/build-info.php';
