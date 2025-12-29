@@ -120,6 +120,7 @@ wfLoadExtension( 'HitCounters' );
 
 # RSS - embed RSS feeds in wiki pages
 wfLoadExtension( 'RSS' );
+$wgRSSUrlWhitelist = array( "*" );
 
 ## Email (disabled by default)
 $wgEnableEmail = false;
