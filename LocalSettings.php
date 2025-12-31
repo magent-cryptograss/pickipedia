@@ -138,6 +138,9 @@ wfLoadExtension( 'HitCounters' );
 wfLoadExtension( 'RSS' );
 $wgRSSUrlWhitelist = array( "*" );
 
+# Gadgets - user-customizable JavaScript/CSS tools
+wfLoadExtension( 'Gadgets' );
+
 ## Email (disabled by default)
 $wgEnableEmail = false;
 $wgEnableUserEmail = false;
