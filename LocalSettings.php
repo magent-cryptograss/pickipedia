@@ -22,6 +22,22 @@ if ( !empty( $wgSentryDsn ) ) {
         'environment' => getenv('WIKI_DEV_MODE') === 'true' ? 'development' : 'production',
         'release' => $wgPickipediaBuildInfo['commit'] ?? 'unknown',
     ]);
+
+    // Use MediaWiki's LogException hook to capture ALL exceptions, including
+    // those caught internally by MediaWiki (like DBQueryError)
+    $wgHooks['LogException'][] = function ( Throwable $e, bool $suppressed ) {
+        \Sentry\captureException( $e );
+    };
+
+    // Also keep shutdown handler for fatal errors that bypass exception handling
+    register_shutdown_function( function () {
+        $error = error_get_last();
+        if ( $error !== null && in_array( $error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR] ) ) {
+            \Sentry\captureException( new \ErrorException(
+                $error['message'], 0, $error['type'], $error['file'], $error['line']
+            ) );
+        }
+    });
 }
 
 ## Site identity

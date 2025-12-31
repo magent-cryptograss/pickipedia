@@ -45,9 +45,12 @@ COPY composer.json /var/www/html/composer.local.json
 WORKDIR /var/www/html
 RUN composer update --no-dev --optimize-autoloader
 
-# Install extensions not available via Composer
+# Install extensions not available via Composer (must match Jenkinsfile)
 RUN git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-YouTube.git extensions/YouTube \
-    && git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-MsUpload.git extensions/MsUpload
+    && git clone --depth 1 https://github.com/wikimedia/mediawiki-extensions-MsUpload.git extensions/MsUpload \
+    && git clone --depth 1 --branch REL1_43 https://github.com/wikimedia/mediawiki-extensions-TimedMediaHandler.git extensions/TimedMediaHandler \
+    && cd extensions/TimedMediaHandler && composer install --no-dev && cd ../.. \
+    && git clone --depth 1 --branch REL1_43 https://github.com/wikimedia/mediawiki-extensions-RSS.git extensions/RSS
 
 # Copy custom extensions (if any)
 COPY extensions/ /var/www/html/custom-extensions/
