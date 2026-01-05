@@ -152,7 +152,8 @@ $wgRSSUrlWhitelist = array( "*" );
 wfLoadExtension( 'Gadgets' );
 
 # PickiPediaVerification - enforce verification workflow for bot edits
-wfLoadExtension( 'PickiPediaVerification' );
+# DISABLED: Using MCP middleware approach instead (pickipedia-mcp fork)
+# wfLoadExtension( 'PickiPediaVerification' );
 
 ## Email (disabled by default)
 $wgEnableEmail = false;
