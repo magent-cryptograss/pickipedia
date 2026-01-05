@@ -44,6 +44,16 @@ if ( !empty( $wgSentryDsn ) ) {
 $wgSitename = getenv('WIKI_NAME') ?: "PickiPedia";
 $wgMetaNamespace = "PickiPedia";
 
+## Custom namespaces
+# Cryptograss namespace for infrastructure and project documentation
+define( "NS_CRYPTOGRASS", 3000 );
+define( "NS_CRYPTOGRASS_TALK", 3001 );
+$wgExtraNamespaces[NS_CRYPTOGRASS] = "Cryptograss";
+$wgExtraNamespaces[NS_CRYPTOGRASS_TALK] = "Cryptograss_talk";
+
+# Make Cryptograss namespace searchable by default
+$wgNamespacesToBeSearchedDefault[NS_CRYPTOGRASS] = true;
+
 ## URLs
 $wgServer = getenv('WIKI_URL') ?: "https://pickipedia.xyz";
 $wgScriptPath = "";
@@ -140,6 +150,9 @@ $wgRSSUrlWhitelist = array( "*" );
 
 # Gadgets - user-customizable JavaScript/CSS tools
 wfLoadExtension( 'Gadgets' );
+
+# PickiPediaVerification - enforce verification workflow for bot edits
+wfLoadExtension( 'PickiPediaVerification' );
 
 ## Email (disabled by default)
 $wgEnableEmail = false;
