@@ -135,7 +135,8 @@ $wgMSU_useDragDrop = true;
 $wgMSU_showAutoCat = true;
 $wgMSU_checkAutoCat = true;
 $wgMSU_imgParams = '400px';
-$wgMSU_uploadsize = '100mb';
+$wgMSU_uploadsize = '1024mb';
+$wgMaxUploadSize = 1024 * 1024 * 1024;  // 1GB - requires /home/conf/php.ini on NFS
 
 # TimedMediaHandler - video/audio playback with transcoding
 wfLoadExtension( 'TimedMediaHandler' );
