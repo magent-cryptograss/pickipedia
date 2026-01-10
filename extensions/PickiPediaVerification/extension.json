@@ -17,7 +17,8 @@
 	},
 	"HookHandlers": {
 		"main": {
-			"class": "MediaWiki\\Extension\\PickiPediaVerification\\Hooks"
+			"class": "MediaWiki\\Extension\\PickiPediaVerification\\Hooks",
+			"services": ["UserGroupManager"]
 		}
 	},
 	"Hooks": {
