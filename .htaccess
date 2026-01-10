@@ -1,16 +1,14 @@
-# Large file uploads (1GB for Blue Railroad video submissions)
-php_value upload_max_filesize 1073741824
-php_value post_max_size 1073741824
-php_value memory_limit 1342177280
-php_value max_execution_time 600
-php_value max_input_time 600
+# PHP values moved to /home/conf/php.ini on NFS (php_value not supported)
+# upload_max_filesize, post_max_size, memory_limit, max_execution_time, max_input_time
 
-# Block aggressive bots eating bandwidth (SetEnvIf works on NFS, RewriteCond doesn't)
+# Block aggressive bots eating bandwidth (Apache 2.4 syntax)
 SetEnvIfNoCase User-Agent "meta-externalagent" bad_bot
 SetEnvIfNoCase User-Agent "Amazonbot" bad_bot
-Order Allow,Deny
-Allow from all
-Deny from env=bad_bot
+
+<RequireAll>
+    Require all granted
+    Require not env bad_bot
+</RequireAll>
 
 RewriteEngine On
 
