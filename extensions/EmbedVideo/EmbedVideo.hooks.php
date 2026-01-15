@@ -622,8 +622,8 @@ class EmbedVideoHooks {
 		if ($parser) {
 			// dont call this if parser is null (such as in API usage).
 			$out = $parser->getOutput();
-			$out->addModules('ext.embedVideo');
-			$out->addModuleStyles('ext.embedVideo.styles');
+			$out->addModules(['ext.embedVideo']);
+			$out->addModuleStyles(['ext.embedVideo.styles']);
 		}
 
 		return [
