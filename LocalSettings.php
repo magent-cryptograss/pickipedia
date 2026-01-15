@@ -169,6 +169,21 @@ wfLoadExtension( 'PickiPediaVerification' );
 # BlueRailroadIntegration - import Blue Railroad token data from chain data
 wfLoadExtension( 'BlueRailroadIntegration' );
 
+# EmbedVideo - embed external video files (MP4, etc.)
+wfLoadExtension( 'EmbedVideo' );
+
+# Add custom 'videolink' service for direct MP4 URLs
+$wgHooks['SetupAfterCache'][] = function() {
+    \EmbedVideo\VideoService::addService('videolink', [
+        'embed' => '<video width="%2$d" controls><source src="%1$s" type="video/mp4">Your browser does not support video.</video>',
+        'default_width' => 320,
+        'default_ratio' => 1.77777777777778,
+        'https_enabled' => true,
+        'url_regex' => ['#^(https?://.+\.mp4)$#is'],
+        'id_regex' => ['#^(https?://.+\.mp4)$#is']
+    ]);
+};
+
 ## Email (disabled by default)
 $wgEnableEmail = false;
 $wgEnableUserEmail = false;
