@@ -172,15 +172,15 @@ wfLoadExtension( 'BlueRailroadIntegration' );
 # EmbedVideo - embed external video files (MP4, etc.)
 wfLoadExtension( 'EmbedVideo' );
 
-# Add custom 'videolink' service for direct MP4 URLs
+# Add custom 'videolink' service for direct video URLs (MP4 or IPFS gateway)
 $wgHooks['SetupAfterCache'][] = function() {
     \EmbedVideo\VideoService::addService('videolink', [
         'embed' => '<video width="%2$d" controls><source src="%1$s" type="video/mp4">Your browser does not support video.</video>',
         'default_width' => 320,
         'default_ratio' => 1.77777777777778,
         'https_enabled' => true,
-        'url_regex' => ['#^(https?://.+\.mp4)$#is'],
-        'id_regex' => ['#^(https?://.+\.mp4)$#is']
+        'url_regex' => ['#^(https?://.+)$#is'],
+        'id_regex' => ['#^(https?://.+)$#is']
     ]);
 };
 
