@@ -106,7 +106,7 @@ class ImportBlueRailroads extends Maintenance {
         }
 
         // Actually create/update the page
-        $page = WikiPage::factory($title);
+        $page = MediaWiki\MediaWikiServices::getInstance()->getWikiPageFactory()->newFromTitle($title);
         $contentObj = ContentHandler::makeContent($content, $title);
 
         $updater = $page->newPageUpdater(User::newSystemUser('BlueRailroad Import'));
