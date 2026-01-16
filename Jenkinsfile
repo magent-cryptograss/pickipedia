@@ -136,6 +136,11 @@ pipeline {
                         mkdir -p "${MW_DIR}/assets"
                         cp -r "${WORKSPACE}/assets/"* "${MW_DIR}/assets/"
                     fi
+
+                    # Copy diagnostic script if present (for debugging)
+                    if [ -f "${WORKSPACE}/diag.php" ]; then
+                        cp "${WORKSPACE}/diag.php" "${MW_DIR}/"
+                    fi
                 '''
             }
         }
