@@ -1,4 +1,5 @@
 {
+    "_comment": "Cache bust test - safe to remove",
     "require": {
         "mediawiki/semantic-media-wiki": "^6.0",
         "mediawiki/page-forms": "^6.0",
