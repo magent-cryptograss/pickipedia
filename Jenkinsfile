@@ -128,9 +128,10 @@ pipeline {
             steps {
                 sh '''#!/bin/bash
                     # Copy any custom extensions we've developed
+                    # Use rsync with --checksum to only transfer changed files
                     if [ -d "${WORKSPACE}/extensions" ]; then
                         echo "Copying custom extensions..."
-                        cp -r "${WORKSPACE}/extensions/"* "${MW_DIR}/extensions/" 2>/dev/null || echo "No custom extensions found"
+                        rsync -a --checksum "${WORKSPACE}/extensions/" "${MW_DIR}/extensions/"
                     else
                         echo "No custom extensions directory"
                     fi
