@@ -1,0 +1,3 @@
+[submodule "extensions/RambutanMode"]
+	path = extensions/RambutanMode
+	url = https://github.com/magent-cryptograss/RambutanMode.git

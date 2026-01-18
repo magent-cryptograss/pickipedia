@@ -6,6 +6,10 @@
  * Secrets are loaded from LocalSettings.local.php (not tracked).
  */
 
+# Suppress deprecation warnings early to prevent them from corrupting
+# ResourceLoader JS output (EmbedVideo extension has compatibility issues)
+error_reporting( E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED );
+
 # Protect against web entry
 if ( !defined( 'MEDIAWIKI' ) ) {
     exit;
@@ -173,6 +177,10 @@ wfLoadExtension( 'PickiPediaVerification' );
 # BlueRailroadIntegration - import Blue Railroad token data from chain data
 wfLoadExtension( 'BlueRailroadIntegration' );
 
+# RambutanMode - adds "Rambutan" as a middle name/alias to person and band articles
+# Users can toggle via sidebar; auto-disables at midnight Florida time
+wfLoadExtension( 'RambutanMode' );
+
 # EmbedVideo - embed external video files (MP4, etc.)
 wfLoadExtension( 'EmbedVideo' );
 
@@ -198,10 +206,8 @@ $wgShowDBErrorBacktrace = false;
 $wgShowSQLErrors = false;
 $wgDevelopmentWarnings = (getenv('WIKI_DEV_MODE') === 'true');
 
-# Suppress deprecation warnings in production (SMW 6.0 has some with MW 1.45)
-if (getenv('WIKI_DEV_MODE') !== 'true') {
-    error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
-}
+# Note: Deprecation warnings are suppressed at the top of this file to prevent
+# them from corrupting ResourceLoader JS output (EmbedVideo has compatibility issues)
 
 ## Build info footer (generated at build time)
 if ( file_exists( __DIR__ . '/build-info.php' ) ) {
