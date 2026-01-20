@@ -125,6 +125,16 @@ pipeline {
                     if [ ! -d "CodeMirror" ]; then
                         git clone --depth 1 --branch REL1_43 https://github.com/wikimedia/mediawiki-extensions-CodeMirror.git CodeMirror
                     fi
+
+                    # Echo - notifications for talk page messages, mentions, watchlist changes
+                    if [ ! -d "Echo" ]; then
+                        git clone --depth 1 --branch REL1_43 https://gerrit.wikimedia.org/r/mediawiki/extensions/Echo.git Echo
+                    fi
+
+                    # Thanks - thank editors for contributions (requires Echo)
+                    if [ ! -d "Thanks" ]; then
+                        git clone --depth 1 --branch REL1_43 https://gerrit.wikimedia.org/r/mediawiki/extensions/Thanks.git Thanks
+                    fi
                 '''
             }
         }
