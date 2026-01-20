@@ -184,6 +184,12 @@ wfLoadExtension( 'RambutanMode' );
 # EmbedVideo - embed external video files (MP4, etc.)
 wfLoadExtension( 'EmbedVideo' );
 
+# Echo - notifications for talk page messages, mentions, watchlist changes
+wfLoadExtension( 'Echo' );
+
+# Thanks - thank editors for contributions
+wfLoadExtension( 'Thanks' );
+
 # Add custom 'videolink' service for direct video URLs (MP4 or IPFS gateway)
 $wgHooks['SetupAfterCache'][] = function() {
     \EmbedVideo\VideoService::addService('videolink', [
