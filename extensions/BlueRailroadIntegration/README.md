@@ -49,7 +49,7 @@ wiki editors to add/modify leaderboards without touching code.
 
 {{BlueRailroadLeaderboard
 |page=Blue Railroad Squats Leaderboard
-|filter_song_id=5
+|filter_song_id=7
 |description=Leaderboard for Squats (Blue Railroad Train)
 }}
 ```
@@ -65,13 +65,17 @@ wiki editors to add/modify leaderboards without touching code.
 | `description` | Description shown at top of leaderboard |
 | `sort` | Sort order: `count` (default), `newest`, `oldest` |
 
-### Song IDs
+### Song IDs (Manzanita Track Numbers)
 
-| ID | Exercise | Song |
-|----|----------|------|
-| 5 | Squats | Blue Railroad Train |
-| 6 | Pushups | Nine Pound Hammer |
-| 10 | Army Crawls | Ginseng Sullivan |
+Song IDs correspond to track numbers on Tony Rice's *Manzanita* album (1979):
+
+| Track # | Song | Exercise |
+|---------|------|----------|
+| 5 | Nine Pound Hammer | Pushups |
+| 7 | Blue Railroad Train | Squats |
+| 8 | Ginseng Sullivan | Army Crawls |
+
+The chain data generator should use these track numbers as the `songId` value.
 
 ## Running the Import
 
