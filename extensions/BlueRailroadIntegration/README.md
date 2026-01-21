@@ -16,19 +16,11 @@ Imports Blue Railroad NFT token data from chain data JSON into Semantic MediaWik
    wfLoadExtension('BlueRailroadIntegration');
    ```
 
-2. Create the namespace (add to `LocalSettings.php`):
-   ```php
-   define('NS_BLUERAILROAD', 3002);
-   define('NS_BLUERAILROAD_TALK', 3003);
-   $wgExtraNamespaces[NS_BLUERAILROAD] = 'BlueRailroad';
-   $wgExtraNamespaces[NS_BLUERAILROAD_TALK] = 'BlueRailroad_talk';
-   ```
-
-3. Create the configuration templates on the wiki:
+2. Create the configuration templates on the wiki:
    - `Template:BlueRailroadSource` - defines data sources
    - `Template:BlueRailroadLeaderboard` - defines leaderboard pages to generate
 
-4. Create the configuration page `PickiPedia:BlueRailroadConfig`
+3. Create the configuration page `PickiPedia:BlueRailroadConfig`
 
 ## Wiki Configuration
 
@@ -146,6 +138,6 @@ importBlueRailroads.php
     │
     ├── Reads config from wiki
     ├── Reads chain-data/chainData.json
-    ├── Creates/updates BlueRailroad:Token_N pages
+    ├── Creates/updates Blue Railroad Token N pages
     └── Generates configured leaderboard pages
 ```

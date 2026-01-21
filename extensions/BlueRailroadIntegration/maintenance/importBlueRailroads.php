@@ -425,7 +425,7 @@ class ImportBlueRailroads extends Maintenance {
             // Format token links
             $tokenLinks = [];
             foreach ($tokenIds as $tid) {
-                $tokenLinks[] = "[[BlueRailroad:Token_$tid|#$tid]]";
+                $tokenLinks[] = "[[Blue Railroad Token $tid|#$tid]]";
             }
             $tokenLinksStr = implode(", ", $tokenLinks);
 
@@ -491,7 +491,7 @@ class ImportBlueRailroads extends Maintenance {
     }
 
     private function importToken($tokenId, $token, $dryRun) {
-        $titleText = "BlueRailroad:Token_$tokenId";
+        $titleText = "Blue Railroad Token $tokenId";
         $title = Title::newFromText($titleText);
 
         if (!$title) {

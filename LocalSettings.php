@@ -128,6 +128,9 @@ $wgGroupPermissions['*']['read'] = true;
 wfLoadExtension( 'SemanticMediaWiki' );
 enableSemantics( parse_url($wgServer, PHP_URL_HOST) );
 
+# Enable SMW semantic links for Cryptograss namespace
+$smwgNamespacesWithSemanticLinks[NS_CRYPTOGRASS] = true;
+
 # Page Forms - create forms for SMW data entry (installed via Composer)
 wfLoadExtension( 'PageForms' );
 
