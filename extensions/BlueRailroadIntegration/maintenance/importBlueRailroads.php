@@ -561,14 +561,20 @@ class ImportBlueRailroads extends Maintenance {
             $ipfsCid = substr($uri, 7);
         }
 
-        // Convert date from YYYYMMDD to readable format
+        // Convert date to readable format
+        // Handles both YYYYMMDD format (8 digits) and Unix timestamps (10 digits)
         $dateStr = (string)$date;
         $formattedDate = '';
-        if (strlen($dateStr) === 8) {
+        if (strlen($dateStr) === 8 && $dateStr[0] === '2') {
+            // YYYYMMDD format (e.g., 20260113)
             $year = substr($dateStr, 0, 4);
             $month = substr($dateStr, 4, 2);
             $day = substr($dateStr, 6, 2);
             $formattedDate = "$year-$month-$day";
+        } elseif (strlen($dateStr) >= 10 && is_numeric($dateStr)) {
+            // Unix timestamp (e.g., 1705685808)
+            $timestamp = (int)$dateStr;
+            $formattedDate = date('Y-m-d', $timestamp);
         }
 
         // Build page content using a template
