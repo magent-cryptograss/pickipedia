@@ -542,39 +542,61 @@ class ImportBlueRailroads extends Maintenance {
         // Extract values, handling potential BigInt serialization and missing keys
         $id = isset($token['id']) ? (is_array($token['id']) ? $token['id'][0] : $token['id']) : $tokenId;
         $songId = isset($token['songId']) ? (is_array($token['songId']) ? $token['songId'][0] : $token['songId']) : '';
-        $date = isset($token['date']) ? (is_array($token['date']) ? $token['date'][0] : $token['date']) : '';
         $owner = $token['owner'] ?? '';
         $ownerDisplay = $token['ownerDisplay'] ?? $owner;
-        $uri = $token['uri'] ?? '';
 
-        // Determine URI type for template
-        $uriType = 'unknown';
-        if (strpos($uri, 'ipfs://') === 0) {
-            $uriType = 'ipfs';
-        } elseif (strpos($uri, 'https://') === 0) {
-            $uriType = 'https';
-        }
+        // Detect V2 vs V1 by presence of blockheight (V2) vs date (V1)
+        $isV2 = isset($token['blockheight']);
 
-        // Extract IPFS CID if applicable
-        $ipfsCid = '';
-        if ($uriType === 'ipfs') {
-            $ipfsCid = substr($uri, 7);
-        }
-
-        // Convert date to readable format
-        // Handles both YYYYMMDD format (8 digits) and Unix timestamps (10 digits)
-        $dateStr = (string)$date;
+        // V2 uses blockheight, V1 uses date
+        $blockheight = '';
+        $date = '';
         $formattedDate = '';
-        if (strlen($dateStr) === 8 && $dateStr[0] === '2') {
-            // YYYYMMDD format (e.g., 20260113)
-            $year = substr($dateStr, 0, 4);
-            $month = substr($dateStr, 4, 2);
-            $day = substr($dateStr, 6, 2);
-            $formattedDate = "$year-$month-$day";
-        } elseif (strlen($dateStr) >= 10 && is_numeric($dateStr)) {
-            // Unix timestamp (e.g., 1705685808)
-            $timestamp = (int)$dateStr;
-            $formattedDate = date('Y-m-d', $timestamp);
+
+        if ($isV2) {
+            $blockheight = isset($token['blockheight']) ? (is_array($token['blockheight']) ? $token['blockheight'][0] : $token['blockheight']) : '';
+        } else {
+            $date = isset($token['date']) ? (is_array($token['date']) ? $token['date'][0] : $token['date']) : '';
+
+            // Convert date to readable format
+            // Handles both YYYYMMDD format (8 digits) and Unix timestamps (10 digits)
+            $dateStr = (string)$date;
+            if (strlen($dateStr) === 8 && $dateStr[0] === '2') {
+                // YYYYMMDD format (e.g., 20260113)
+                $year = substr($dateStr, 0, 4);
+                $month = substr($dateStr, 4, 2);
+                $day = substr($dateStr, 6, 2);
+                $formattedDate = "$year-$month-$day";
+            } elseif (strlen($dateStr) >= 10 && is_numeric($dateStr)) {
+                // Unix timestamp (e.g., 1705685808)
+                $timestamp = (int)$dateStr;
+                $formattedDate = date('Y-m-d', $timestamp);
+            }
+        }
+
+        // V2 uses videoHash, V1 uses uri
+        $uri = '';
+        $videoHash = '';
+        $uriType = 'unknown';
+        $ipfsCid = '';
+
+        if ($isV2) {
+            $videoHash = $token['videoHash'] ?? '';
+            // V2 videoHash is stored as bytes32 hex, can be used with IPFS
+            if (!empty($videoHash) && $videoHash !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+                $uriType = 'ipfs';
+                // Remove 0x prefix for IPFS CID
+                $ipfsCid = strpos($videoHash, '0x') === 0 ? substr($videoHash, 2) : $videoHash;
+                $uri = "ipfs://$ipfsCid";
+            }
+        } else {
+            $uri = $token['uri'] ?? '';
+            if (strpos($uri, 'ipfs://') === 0) {
+                $uriType = 'ipfs';
+                $ipfsCid = substr($uri, 7);
+            } elseif (strpos($uri, 'https://') === 0) {
+                $uriType = 'https';
+            }
         }
 
         // Build page content using a template
@@ -582,17 +604,29 @@ class ImportBlueRailroads extends Maintenance {
             "{{Blue Railroad Token",
             "|token_id=$id",
             "|song_id=$songId",
-            "|date=$formattedDate",
-            "|date_raw=$date",
-            "|owner=$owner",
-            "|owner_display=$ownerDisplay",
-            "|uri=$uri",
-            "|uri_type=$uriType",
-            "|ipfs_cid=$ipfsCid",
-            "}}",
-            "",
-            "[[Category:Blue Railroad Tokens]]",
+            "|contract_version=" . ($isV2 ? 'V2' : 'V1'),
         ];
+
+        // Add version-specific fields
+        if ($isV2) {
+            $lines[] = "|blockheight=$blockheight";
+            $lines[] = "|video_hash=$videoHash";
+        } else {
+            $lines[] = "|date=$formattedDate";
+            $lines[] = "|date_raw=$date";
+        }
+
+        $lines[] = "|owner=$owner";
+        $lines[] = "|owner_display=$ownerDisplay";
+        $lines[] = "|uri=$uri";
+        $lines[] = "|uri_type=$uriType";
+        $lines[] = "|ipfs_cid=$ipfsCid";
+        $lines[] = "}}";
+        $lines[] = "";
+        $lines[] = "[[Category:Blue Railroad Tokens]]";
+        if ($isV2) {
+            $lines[] = "[[Category:Blue Railroad V2 Tokens]]";
+        }
 
         return implode("\n", $lines);
     }
