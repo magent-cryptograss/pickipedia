@@ -18,6 +18,10 @@
 	"AutoloadNamespaces": {
 		"MediaWiki\\Extension\\BlueRailroadIntegration\\": "src/"
 	},
+	"ResourceFileModulePaths": {
+		"localBasePath": "",
+		"remoteExtPath": "BlueRailroadIntegration"
+	},
 	"ResourceModules": {
 		"ext.bluerailroad.datepicker": {
 			"scripts": ["resources/ext.bluerailroad.datepicker.js"],
