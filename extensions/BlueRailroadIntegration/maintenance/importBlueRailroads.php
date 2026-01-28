@@ -62,6 +62,9 @@ class ImportBlueRailroads extends Maintenance {
             $this->fatalError("Failed to parse JSON: " . json_last_error_msg());
         }
 
+        // Aggregate all tokens from all sources for leaderboards
+        $allTokens = [];
+
         // Process each source
         foreach ($config['sources'] as $source) {
             $chainDataKey = $source['chain_data_key'] ?? 'blueRailroads';
@@ -93,18 +96,23 @@ class ImportBlueRailroads extends Maintenance {
                 } else {
                     $errors++;
                 }
+
+                // Add to aggregated tokens for leaderboards
+                // Use source-prefixed key to avoid collisions between V1 and V2 token IDs
+                $aggregateKey = $chainDataKey . '_' . $tokenId;
+                $allTokens[$aggregateKey] = $token;
             }
 
             $this->output("\nToken Import Summary:\n");
             $this->output("  Imported: $imported\n");
             $this->output("  Updated: $updated\n");
             $this->output("  Errors: $errors\n");
+        }
 
-            // Generate leaderboards from config
-            $this->output("\nGenerating leaderboards...\n");
-            foreach ($config['leaderboards'] as $leaderboard) {
-                $this->generateLeaderboard($blueRailroads, $leaderboard, $dryRun);
-            }
+        // Generate leaderboards from aggregated tokens (outside source loop)
+        $this->output("\nGenerating leaderboards from " . count($allTokens) . " total tokens...\n");
+        foreach ($config['leaderboards'] as $leaderboard) {
+            $this->generateLeaderboard($allTokens, $leaderboard, $dryRun);
         }
     }
 
@@ -342,6 +350,20 @@ class ImportBlueRailroads extends Maintenance {
         if ($dryRun) {
             $this->output("    Would set leaderboard content (" . strlen($content) . " bytes)\n");
             return;
+        }
+
+        // Check if content has actually changed
+        if ($exists) {
+            $services = MediaWiki\MediaWikiServices::getInstance();
+            $revisionLookup = $services->getRevisionLookup();
+            $currentRevision = $revisionLookup->getRevisionByTitle($title);
+            if ($currentRevision) {
+                $currentContent = $currentRevision->getContent('main');
+                if ($currentContent && $currentContent->getText() === $content) {
+                    $this->output("    No changes needed (content identical)\n");
+                    return;
+                }
+            }
         }
 
         // Save the page
