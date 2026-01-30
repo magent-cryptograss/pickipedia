@@ -105,6 +105,7 @@ $wgUseInstantCommons = true;
 $wgLogos = [
     '1x' => "$wgResourceBasePath/assets/logo.png",
 ];
+$wgFavicon = "$wgResourceBasePath/assets/favicon.ico";
 
 ## Skins
 wfLoadSkin( 'MonoBook' );
