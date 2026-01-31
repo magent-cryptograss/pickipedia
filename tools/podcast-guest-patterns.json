@@ -1,0 +1,103 @@
+{
+  "_comment": "Per-podcast regex patterns for extracting guest names from episode titles. Each pattern should have a named group 'guest' unless marked 'skip'. Patterns are tried in order; first match wins.",
+  "patterns": {
+    "Bluegrass Unlimited's Podcast": [
+      {"pattern": "^Bluegrass Unlimited Podcast with (?P<guest>.+)$"}
+    ],
+    "Bluegrass BKLYN": [
+      {"pattern": "^S\\d+[SEM]*\\d*\\s+Women in Bluegrass[:\\s-]+(?P<guest>[A-Z].+?)!*$"},
+      {"pattern": "^S\\d+[SEM]*\\d*\\s+Home Grown, Locally Known[:\\s-]+(?P<guest>[A-Z].+?)!*$"},
+      {"pattern": "^S\\d*E?\\d+:?\\s+(?:Home Grown, Locally Known|On the Road|Iconic Venues|Women in Bluegrass)[:\\s-]+(?:with )?(?P<guest>[A-Z].+?)!*$"},
+      {"pattern": "^SE?\\d+:?\\s+(?P<guest>[A-Z][a-z]+(?: (?:and|&) [A-Z][a-z]+| [A-Z][a-z]+)+)!*$"},
+      {"pattern": "^S\\d+[SEM]*\\d*:?\\s+(?P<guest>[A-Z][a-z]+(?: (?:and|&) [A-Z][a-z]+| [A-Z][a-z]+)+)!*$"},
+      {"pattern": "^S\\d+[SEM]*\\d*:?\\s+(?:Home Grown, Locally Known|On the Road[:\\s])!*$", "skip": true, "_note": "Segment eps without guest"},
+      {"pattern": "^S\\d+[SEM]*\\d*:?\\s+(?:Addendum|Wrap Up|Recap|Ballad|Let's Talk|NYC Bluegrass|JamVal|Festival Recap)", "skip": true, "_note": "Topic/recap episodes"},
+      {"pattern": "^S\\d+[SEM]*\\d*\\s+(?P<guest>Le Vent du Nord)!*$", "_note": "French band name edge case"}
+    ],
+    "Bluegrass Jam Along": [
+      {"pattern": "^.+\\(\\w+ \\d+ bpm\\)", "skip": true, "_note": "Jam-along backing tracks"},
+      {"pattern": "^.+ at \\d+ tempos? ", "skip": true, "_note": "Multi-tempo jam tracks"},
+      {"pattern": "^.+ in [A-G] at \\d+ tempos", "skip": true, "_note": "Jam tracks with key"},
+      {"pattern": "^Mini Jam #", "skip": true},
+      {"pattern": "^Bluegrass Briefing", "skip": true},
+      {"pattern": "^Bitesize ", "skip": true},
+      {"pattern": "^Food [Ff]or Thought", "skip": true},
+      {"pattern": "^Intro to Bluegrass", "skip": true},
+      {"pattern": "^Announcing ", "skip": true},
+      {"pattern": "^Inspiration for Musicians", "skip": true},
+      {"pattern": "^A quick (?:update|August)", "skip": true},
+      {"pattern": "^We reached \\d+", "skip": true},
+      {"pattern": "^IBMA (?:World of Bluegrass )?\\d+ [Ss]pecial", "skip": true},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+) \\([^)]+\\) on .+$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+) on .+$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+) (?:Celebrates?|Talks?|Discusses|Shares?|Returns?|Remembers?)\\b.*$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+)\\s*[-–]\\s*.+$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+)\\s+[Ii]nterview.*$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+) \\([^)]+\\) [Ii]nterview.*$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+ (?:and|&) [A-Z][\\w.'\\-]+(?:(?: [A-Z][\\w'\\-]+))*) [Ii]nterview.*$"},
+      {"pattern": "^Celebrating .+ with (?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]?\\.?[\\w'\\-]*)+ ?)(?:\\(.*\\))?$"},
+      {"pattern": "^Celebrating \\d+ years of .+ [-–] part \\d+ (?P<guest>[A-Z][\\w.'\\-]+(?: (?:&|and) [A-Z][\\w.'\\-]+)?(?: [A-Z][\\w'\\-]+)*)$"},
+      {"pattern": "^Celebrating .+ [-–] part \\d+ with (?P<guest>.+)$"},
+      {"pattern": "^(?:A |The )?Celebration of .+ [-–] (?P<guest>.+?)(?:'s .+)?$"},
+      {"pattern": "^Highlights from .+ [-–] (?P<guest>.+)$"},
+      {"pattern": "^(?:Musicality|Roots Revival) .+ with (?P<guest>.+)$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+)'s .+$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+) (?:celebrates|has dinner|returns)\\b.*$", "_note": "lowercase verb variants"},
+      {"pattern": "^How to .+ with (?P<guest>[A-Z][\\w.'\\-]+(?: \\([^)]+\\))?(?: [A-Z][\\w'\\-]+)*)$"},
+      {"pattern": "^.+ [Tt]ribute part \\d+ [-–] (?:featuring )?(?P<guest>.+)$"},
+      {"pattern": "^.+ [Tt]ribute part \\d+ [-–] (?P<guest>.+)$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+) \\([^)]+\\)$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?:(?: (?:and|&))? [A-Z][\\w.'\\-]+)+) [Ii]nterview.*$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+) (?:repost|extended interview).*$"},
+      {"pattern": "^(?:The )?(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+), .+$"},
+      {"pattern": "^Tonewoods Special with (?P<guest>.+)$"},
+      {"pattern": "^\\d{4} Retrospective with (?P<guest>.+)$"},
+      {"pattern": "^.+ Anniversary Celebration [-–] part \\d+.*with (?P<guest>.+)$"},
+      {"pattern": "^.+ Anniversary Celebration [-–] part \\d+ (?P<guest>.+)$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+(?: [A-Z]\\.?)?(?: [A-Z][\\w'\\-]+)+) (?:mini )?interview.*$", "_note": "catch mini interview"},
+      {"pattern": "^(?P<guest>[A-Z][\\w.'\\-]+ (?:and|&) [A-Z][\\w.'\\-]+(?: [A-Z][\\w'\\-]+)*(?:'s)?) .+$"}
+    ],
+    "Walls of Time: Bluegrass Podcast": [
+      {"pattern": "^(?:S\\d+ E\\d+|BONUS)\\.\\s*(?P<guest>[^:]+?):\\s*.+$"},
+      {"pattern": "^(?:S\\d+ E\\d+|BONUS)\\.\\s*(?P<guest>[A-Z].+?)\\s+(?:Remembers|on\\b).*$"},
+      {"pattern": "^S\\d+ E0\\.", "skip": true, "_note": "Season previews"}
+    ],
+    "Toy Heart with Tom Power": [
+      {"pattern": "^(?:Season|Seaon) \\d+", "skip": true},
+      {"pattern": "^Preview ", "skip": true},
+      {"pattern": "^The Bluegrass Breakdown Podcast [-–] (?P<guest>[A-Z].+?)\\s*[-–].*$"},
+      {"pattern": "^Remembering .+[-–]\\s*Episode \\d+\\s*\\((?P<guest>.+)\\)$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w'À-ÿ]+(?: [A-Z][\\w'À-ÿ]+)+)(?:\\s+in Conversation.*)?$"},
+      {"pattern": "^(?P<guest>[A-Z][\\w'À-ÿ]+(?:\\s+[A-Z][\\w'À-ÿ]+)*)$"}
+    ],
+    "What's The Reason For This Podcast": [
+      {"pattern": "^What'?s The Reason For This Podcast[^-]*[-–]\\s*(?P<guest>[A-Z].+?)(?:\\s*[-–].*)?$"},
+      {"pattern": "^What'?s The Reason For This (?:Season \\d+ )?Episode \\d+\\s*[-–]\\s*(?P<guest>[A-Z].+?)(?:\\s*[-–].*)?$"},
+      {"pattern": "^What'?s The Reason For This Session\\s*[-–]?\\s*\\d*\\s*[-–]\\s*(?P<guest>[A-Z].+?)(?:\\s*[-–].*)?$"},
+      {"pattern": "^Episode \\d+\\s*[-–]\\s*(?P<guest>[A-Z].+?)(?:\\s*[-–].*)?$"}
+    ],
+    "The Picky Fingers Banjo Podcast": [
+      {"pattern": "^#\\d+\\s*[-–]\\s*\"[^\"]*\"\\s+(?:feat\\.?|Feat\\.?)\\s+(?P<guest>.+)$"},
+      {"pattern": "^#\\d+\\s*[-–]\\s*\"[^\"]*\"\\s+(?:by|Revisited!\\s*Feat\\.?)\\s+(?P<guest>.+)$"},
+      {"pattern": "^#\\d+\\s*[-–]\\s*(?:In Memoriam:\\s*)?(?P<guest>[A-Z][\\w'\\-]+(?: [A-Z][\\w'\\-]+)*).*$"},
+      {"pattern": "^BONUS\\s*[-–]\\s*(?:Fireside Chat w/\\s*)?(?P<guest>[A-Z][\\w'\\-]+(?: [A-Z][\\w'\\-]+)*).*$"},
+      {"pattern": "^Bonus\\s*[-–]\\s*(?P<guest>[A-Z][\\w'\\-]+(?: [A-Z][\\w'\\-]+)*).*$"},
+      {"pattern": "^REPLAY\\s*[-–]\\s*(?P<guest>[A-Z][\\w'\\-]+(?: [A-Z][\\w'\\-]+)*).*$"},
+      {"pattern": "^#\\d+\\s*[-–]\\s*Dueling .+feat\\.?\\s*(?P<guest>.+)$"},
+      {"pattern": "^Bonus\\s*[-–]\\s*(?:Who is|Eli)", "skip": true, "_note": "Non-guest bonus eps"}
+    ],
+    "Bluegrass Ambassadors": [
+      {"pattern": "^Episode \\d+\\s*[-–:]\\s*(?P<guest>[A-Z].+?)\\s*[-–:]\\s*.+$"}
+    ],
+    "Grass Talk Radio": [
+      {"pattern": "^GTR-\\d+\\s+(?P<guest>[A-Z][a-z]+(?: \"[^\"]+\")?(?: [A-Z][a-z]+)+)\\s+[Ii]nterview.*$"},
+      {"pattern": "^GTR-\\d+\\s*[-–]\\s*(?P<guest>[A-Z][a-z]+(?: [\\u201c\\u201d\"]+[^\\u201c\\u201d\"]+[\\u201c\\u201d\"]+)?(?: [A-Z][a-z]+)+)\\s+[Ii]nterview.*$"},
+      {"pattern": "^GTR-\\d+\\s*[-–]\\s*(?:\"[^\"]*\"\\s+)?(?:Author|Luthier)\\s+(?P<guest>[A-Z][a-z]+(?: [A-Z][a-z]+)+).*$"},
+      {"pattern": "^GTR-\\d+\\s*[-–]?\\s*(?P<guest>[A-Z][a-z]+(?: [A-Z][a-z]+)+) of .+$", "_note": "Name of Organization pattern"}
+    ],
+    "The Old Dingy Jukebox": [],
+    "Fiddle Studio": [],
+    "Southern Branch Bluegrass & Gospel Music Radio": [],
+    "County Sales Radio Hour": []
+  }
+}
