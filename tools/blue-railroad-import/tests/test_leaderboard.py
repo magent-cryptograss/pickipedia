@@ -174,7 +174,7 @@ class TestLeaderboardAggregation:
     """
 
     def test_aggregated_tokens_include_all_sources(self, sample_tokens):
-        """Leaderboard should include BOTH V1 and V2 tokens."""
+        """Leaderboard includes BOTH V1 and V2 tokens."""
         config = LeaderboardConfig(page='Test')
         content = generate_leaderboard_content(sample_tokens, config)
 
@@ -182,16 +182,16 @@ class TestLeaderboardAggregation:
         assert '| 1 || alice.eth || 3 ||' in content
 
     def test_token_ids_sorted_numerically(self, sample_tokens):
-        """Token IDs in leaderboard should be sorted numerically."""
+        """Token IDs in leaderboard are sorted numerically."""
         config = LeaderboardConfig(page='Test')
         content = generate_leaderboard_content(sample_tokens, config)
 
-        # Alice's tokens should be 1, 2, 5 in order
+        # Alice's tokens listed as 1, 2, 5 in numeric order
         alice_row = [line for line in content.split('\n') if 'alice.eth' in line][0]
         assert '#1]], [[Blue Railroad Token 2|#2]], [[Blue Railroad Token 5|#5]]' in alice_row
 
     def test_idempotent_content_generation(self, sample_tokens):
-        """Same input should always produce same output."""
+        """Same input always produces same output."""
         config = LeaderboardConfig(page='Test', sort='count')
 
         content1 = generate_leaderboard_content(sample_tokens, config)

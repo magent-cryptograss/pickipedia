@@ -84,22 +84,22 @@ class DryRunClient:
 
     def __init__(self, existing_pages: Optional[dict[str, str]] = None):
         self.existing_pages = existing_pages or {}
-        self.would_save: list[tuple[str, str, str]] = []
+        self.saved_pages: list[tuple[str, str, str]] = []
 
     def get_page_content(self, title: str) -> Optional[str]:
         return self.existing_pages.get(title)
 
     def save_page(self, title: str, content: str, summary: str) -> SaveResult:
-        self.would_save.append((title, content, summary))
+        self.saved_pages.append((title, content, summary))
 
         existed = title in self.existing_pages
         current = self.existing_pages.get(title)
 
         if current == content:
-            return SaveResult(title, 'unchanged', 'Would be unchanged')
+            return SaveResult(title, 'unchanged', 'Content identical (dry run)')
 
         action = 'updated' if existed else 'created'
-        return SaveResult(title, action, f'Would be {action} (dry run)')
+        return SaveResult(title, action, f'{action} (dry run)')
 
     def page_exists(self, title: str) -> bool:
         return title in self.existing_pages

@@ -131,7 +131,7 @@ class TestBlueRailroadImporter:
         config = importer.load_config()
         tokens = importer.load_tokens(config)
 
-        # Should have 3 tokens total (2 from V1, 1 from V2)
+        # 3 tokens total: 2 from V1, 1 from V2
         assert len(tokens) == 3
 
     def test_run_creates_token_pages(self, chain_data_file, wiki_config_content):
@@ -142,11 +142,11 @@ class TestBlueRailroadImporter:
 
         stats = importer.run()
 
-        # Should create 3 token pages
+        # 3 token pages created
         assert stats.tokens_created == 3
 
-        # Check pages would be saved
-        saved_titles = [title for title, _, _ in wiki.would_save]
+        # Verify save_page() was called for each token
+        saved_titles = [title for title, _, _ in wiki.saved_pages]
         assert 'Blue Railroad Token 1' in saved_titles
         assert 'Blue Railroad Token 2' in saved_titles
         assert 'Blue Railroad Token 5' in saved_titles
@@ -159,10 +159,10 @@ class TestBlueRailroadImporter:
 
         stats = importer.run()
 
-        # Should create 2 leaderboards
+        # 2 leaderboards created
         assert stats.leaderboards_created == 2
 
-        saved_titles = [title for title, _, _ in wiki.would_save]
+        saved_titles = [title for title, _, _ in wiki.saved_pages]
         assert 'Blue Railroad Leaderboard' in saved_titles
         assert 'Blue Railroad Squats Leaderboard' in saved_titles
 
@@ -177,7 +177,7 @@ class TestBlueRailroadImporter:
         importer.run()
 
         # Get the generated content
-        generated_pages = {title: content for title, content, _ in wiki.would_save}
+        generated_pages = {title: content for title, content, _ in wiki.saved_pages}
 
         # Second run with pre-existing content
         wiki2 = DryRunClient(existing_pages={
@@ -187,7 +187,7 @@ class TestBlueRailroadImporter:
         importer2 = BlueRailroadImporter(wiki2, chain_data_file)
         stats2 = importer2.run()
 
-        # Everything should be unchanged
+        # All pages match existing content — nothing to update
         assert stats2.tokens_created == 0
         assert stats2.tokens_updated == 0
         assert stats2.tokens_unchanged == 3
@@ -199,7 +199,7 @@ class TestLeaderboardAggregationIntegration:
     Integration test for the critical aggregation fix.
 
     This tests the exact scenario that caused the bot loop:
-    multiple sources should be aggregated BEFORE generating leaderboards,
+    multiple sources must be aggregated BEFORE generating leaderboards,
     not generate separate leaderboards per source.
     """
 
@@ -212,23 +212,23 @@ class TestLeaderboardAggregationIntegration:
 
         # Find the overall leaderboard content
         leaderboard_content = None
-        for title, content, _ in wiki.would_save:
+        for title, content, _ in wiki.saved_pages:
             if title == 'Blue Railroad Leaderboard':
                 leaderboard_content = content
                 break
 
         assert leaderboard_content is not None
 
-        # Alice should have 2 tokens (1 from V1, 1 from V2)
+        # Alice holds 2 tokens (1 from V1, 1 from V2)
         # The row format is: | rank || holder || count || token links
         assert '| 1 || alice.eth || 2 ||' in leaderboard_content
 
-        # Token IDs from both sources should be present
+        # Token IDs from both sources appear in the leaderboard
         assert '#1]]' in leaderboard_content  # V1 token
         assert '#5]]' in leaderboard_content  # V2 token
 
     def test_multiple_runs_produce_identical_output(self, chain_data_file, wiki_config_content):
-        """Idempotency test - running twice should produce same content."""
+        """Idempotency: two runs with identical input produce identical output."""
         wiki1 = DryRunClient(existing_pages={
             'PickiPedia:BlueRailroadConfig': wiki_config_content,
         })
@@ -243,7 +243,7 @@ class TestLeaderboardAggregationIntegration:
         importer2.run()
 
         # Get leaderboard content from both runs
-        lb1 = next(c for t, c, _ in wiki1.would_save if t == 'Blue Railroad Leaderboard')
-        lb2 = next(c for t, c, _ in wiki2.would_save if t == 'Blue Railroad Leaderboard')
+        lb1 = next(c for t, c, _ in wiki1.saved_pages if t == 'Blue Railroad Leaderboard')
+        lb2 = next(c for t, c, _ in wiki2.saved_pages if t == 'Blue Railroad Leaderboard')
 
         assert lb1 == lb2
