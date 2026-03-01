@@ -128,6 +128,8 @@ $wgGroupPermissions['*']['edit'] = false;
 $wgGroupPermissions['*']['read'] = true;
 # Allow sysops to merge/delete users (for bot cleanup)
 $wgGroupPermissions['sysop']['usermerge'] = true;
+# Release group - users who can add trusted IPFS/torrent content to delivery-kid
+$wgGroupPermissions['release']['edit'] = true;
 
 ## Extensions
 
