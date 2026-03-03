@@ -1,5 +1,5 @@
 {
-    "_comment": "Cache bust test - safe to remove",
+    "_comment": "Cache bust 2026-03-03 - vendor rebuild",
     "require": {
         "mediawiki/semantic-media-wiki": "^6.0",
         "mediawiki/page-forms": "^6.0",
