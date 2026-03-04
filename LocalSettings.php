@@ -131,6 +131,11 @@ $wgGroupPermissions['sysop']['usermerge'] = true;
 # Release group - users who can add trusted IPFS/torrent content to delivery-kid
 $wgGroupPermissions['release']['edit'] = true;
 
+# Restrict Release namespace to users in the 'release' group
+# NS_RELEASE (3004) is defined by the PickiPediaReleases extension
+$wgNamespaceProtection[3004] = ['release-edit'];
+$wgGroupPermissions['release']['release-edit'] = true;
+
 ## Extensions
 
 # Semantic MediaWiki (installed via Composer)
