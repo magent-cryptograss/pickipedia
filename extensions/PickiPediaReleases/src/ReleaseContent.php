@@ -208,7 +208,7 @@ class ReleaseContent extends AbstractContent {
 	/**
 	 * @inheritDoc
 	 */
-	public function getTextForSummary( int $maxLength = 250 ): string {
+	public function getTextForSummary( $maxLength = 250 ) {
 		$title = $this->getReleaseTitle();
 		if ( $title !== null ) {
 			return mb_substr( $title, 0, $maxLength );
