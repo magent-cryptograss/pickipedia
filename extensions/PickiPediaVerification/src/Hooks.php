@@ -88,9 +88,16 @@ class Hooks implements EditFilterMergedContentHook {
 	 * Check if user is in a group that requires verification.
 	 */
 	private function isVerificationRequired( $user, $config ): bool {
-		$botGroups = $config->get( 'PickiPediaVerificationBotGroups' );
 		$userGroups = $this->userGroupManager->getUserGroups( $user );
 
+		// Check if user is in an exempt group (bypasses verification entirely)
+		$exemptGroups = $config->get( 'PickiPediaVerificationExemptGroups' );
+		if ( !empty( array_intersect( $userGroups, $exemptGroups ) ) ) {
+			return false;
+		}
+
+		// Check if user is in a bot group (requires verification)
+		$botGroups = $config->get( 'PickiPediaVerificationBotGroups' );
 		return !empty( array_intersect( $userGroups, $botGroups ) );
 	}
 

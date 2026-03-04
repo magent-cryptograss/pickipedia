@@ -35,6 +35,10 @@
 			"value": ["bot"],
 			"description": "User groups whose edits require verification"
 		},
+		"PickiPediaVerificationExemptGroups": {
+			"value": [],
+			"description": "User groups exempt from verification (overrides bot group membership)"
+		},
 		"PickiPediaVerificationNamespaces": {
 			"value": [0],
 			"description": "Namespaces where verification is enforced (0 = main)"

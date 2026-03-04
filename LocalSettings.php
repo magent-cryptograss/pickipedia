@@ -219,6 +219,11 @@ wfLoadExtension( 'Gadgets' );
 # Also provides Special:VerifyBotEdits for bulk verification
 wfLoadExtension( 'PickiPediaVerification' );
 
+# Exempt trusted bots from verification requirement
+# Add bot accounts to this group via Special:UserRights
+$wgGroupPermissions['exempt-from-verification']['read'] = true;
+$wgPickiPediaVerificationExemptGroups = ['exempt-from-verification'];
+
 # RambutanMode - adds "Rambutan" as a middle name/alias to person and band articles
 # Users can toggle via sidebar; auto-disables at midnight Florida time
 wfLoadExtension( 'RambutanMode' );
