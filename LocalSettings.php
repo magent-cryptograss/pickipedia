@@ -136,6 +136,10 @@ $wgGroupPermissions['release']['edit'] = true;
 $wgNamespaceProtection[3004] = ['release-edit'];
 $wgGroupPermissions['release']['release-edit'] = true;
 
+# Make release-edit available as a BotPasswords grant
+$wgGrantPermissions['release-edit']['release-edit'] = true;
+$wgGrantPermissionGroups['release-edit'] = 'other';
+
 ## Extensions
 
 # Semantic MediaWiki (installed via Composer)
