@@ -156,6 +156,17 @@ YAML;
 	 */
 	private function renderReleaseInfo( ?string $cid, array $data, $pageRef ): string {
 		$html = Html::openElement( 'div', [ 'class' => 'release-info' ] );
+
+		// Render video player if this release is a video
+		if ( $cid && !empty( $data['file_type'] ) && str_starts_with( $data['file_type'], 'video/' ) ) {
+			$html .= Html::element( 'div', [
+				'class' => 'hls-video-player',
+				'data-cid' => $cid,
+				'data-width' => '100%',
+				'data-max-width' => '800px',
+			] );
+		}
+
 		$html .= Html::openElement( 'table', [ 'class' => 'release-metadata wikitable' ] );
 
 		// CID from page title (primary identifier)
