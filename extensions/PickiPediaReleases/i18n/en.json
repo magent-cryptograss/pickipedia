@@ -9,5 +9,7 @@
 	"apihelp-releaselist-summary": "List all releases with their IPFS CIDs (from page titles) for pinning service synchronization",
 	"apihelp-releaselist-param-filter": "Filter releases: 'all' (default), 'ipfs', 'torrent', 'missing-torrent'",
 	"apihelp-releaselist-example-all": "List all releases",
-	"apihelp-releaselist-example-ipfs": "List releases with IPFS CIDs"
+	"apihelp-releaselist-example-ipfs": "List releases with IPFS CIDs",
+	"special-releases": "Releases",
+	"special-releases-summary": "All releases in the catalog"
 }

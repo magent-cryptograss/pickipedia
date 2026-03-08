@@ -28,6 +28,9 @@
 	"ContentHandlers": {
 		"release-yaml": "MediaWiki\\Extension\\PickiPediaReleases\\ReleaseContentHandler"
 	},
+	"SpecialPages": {
+		"Releases": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialReleases"
+	},
 	"APIModules": {
 		"releaselist": {
 			"class": "MediaWiki\\Extension\\PickiPediaReleases\\ApiReleaseList"
