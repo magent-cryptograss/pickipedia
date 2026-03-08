@@ -12,5 +12,8 @@
 	"apihelp-releaselist-example-ipfs": "List releases with IPFS CIDs",
 	"special-releases": "Releases",
 	"special-releases-summary": "All releases in the catalog",
+	"special-releases-header": "",
+	"special-releases-mid": "",
+	"special-releases-footer": "",
 	"releases": "Releases"
 }

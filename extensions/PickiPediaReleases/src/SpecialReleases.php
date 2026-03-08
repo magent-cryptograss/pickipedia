@@ -26,13 +26,34 @@ class SpecialReleases extends SpecialPage {
 		$out = $this->getOutput();
 		$out->addModuleStyles( [ 'ext.pickipediaReleases.styles' ] );
 
+		// Editable header: MediaWiki:special-releases-header
+		$this->addWikitextMessage( 'special-releases-header' );
+
 		$releases = $this->getReleases();
 
 		$out->addHTML( Html::element( 'p', [],
 			count( $releases ) . ' releases in the catalog.'
 		) );
 
+		// Editable mid-section: MediaWiki:special-releases-mid
+		$this->addWikitextMessage( 'special-releases-mid' );
+
 		$out->addHTML( $this->renderTable( $releases ) );
+
+		// Editable footer: MediaWiki:special-releases-footer
+		$this->addWikitextMessage( 'special-releases-footer' );
+	}
+
+	/**
+	 * Parse and output a MediaWiki message as wikitext, if it exists and is non-empty.
+	 *
+	 * @param string $msgKey
+	 */
+	private function addWikitextMessage( string $msgKey ): void {
+		$msg = $this->msg( $msgKey );
+		if ( !$msg->isDisabled() ) {
+			$this->getOutput()->addWikiTextAsInterface( $msg->plain() );
+		}
 	}
 
 	/**
