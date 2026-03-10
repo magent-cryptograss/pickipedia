@@ -1,59 +1,40 @@
 /**
- * Upload Content — client-side workflow for Special:UploadContent.
+ * Upload Content — direct upload to delivery-kid from browser.
  *
- * Steps: Connect Wallet → Upload Files → Review Metadata → Finalize (Pin to IPFS)
+ * Wiki generates an HMAC token. JS uploads directly to delivery-kid.
+ * No bytes pass through PHP.
  */
 ( function () {
 	'use strict';
 
-	var DELIVERY_KID_URL = mw.config.get( 'wgDeliveryKidUrl' );
+	var API_URL = mw.config.get( 'wgDeliveryKidUrl' );
+	var AUTH_HEADERS = {
+		'X-Upload-Token': mw.config.get( 'wgUploadToken' ),
+		'X-Upload-User': mw.config.get( 'wgUploadUser' ),
+		'X-Upload-Timestamp': String( mw.config.get( 'wgUploadTimestamp' ) )
+	};
+
 	var currentDraftId = null;
-	var currentDraftFiles = null;
-	var walletAddress = null;
 
 	// -- Helpers --
 
-	function $( id ) {
+	function el( id ) {
 		return document.getElementById( id );
 	}
 
 	function setStatus( elementId, message, type ) {
-		var el = $( elementId );
-		el.textContent = message;
-		el.className = 'uc-status' + ( type ? ' uc-status-' + type : '' );
+		var e = el( elementId );
+		e.textContent = message;
+		e.className = 'uc-status' + ( type ? ' uc-status-' + type : '' );
 	}
 
 	function showStep( stepId ) {
-		document.querySelectorAll( '.uc-step' ).forEach( function ( el ) {
-			el.classList.remove( 'uc-step-active' );
+		document.querySelectorAll( '.uc-step' ).forEach( function ( s ) {
+			s.classList.remove( 'uc-step-active' );
 		} );
-		$( stepId ).classList.add( 'uc-step-active' );
+		el( stepId ).classList.add( 'uc-step-active' );
 	}
 
-	/**
-	 * Sign a message with the connected wallet and return auth headers.
-	 */
-	async function getAuthHeaders() {
-		var timestamp = Date.now();
-		var message = 'Authorize Blue Railroad pinning\nTimestamp: ' + timestamp;
-
-		try {
-			var signature = await window.ethereum.request( {
-				method: 'personal_sign',
-				params: [ message, walletAddress ]
-			} );
-			return {
-				'X-Signature': signature,
-				'X-Timestamp': timestamp.toString()
-			};
-		} catch ( err ) {
-			throw new Error( 'Wallet signature rejected: ' + err.message );
-		}
-	}
-
-	/**
-	 * Format bytes to human-readable size.
-	 */
 	function formatSize( bytes ) {
 		var units = [ 'B', 'KB', 'MB', 'GB' ];
 		var size = bytes;
@@ -65,9 +46,6 @@
 		return size.toFixed( 1 ) + ' ' + units[ i ];
 	}
 
-	/**
-	 * Format duration in seconds to mm:ss.
-	 */
 	function formatDuration( seconds ) {
 		if ( !seconds ) {
 			return '';
@@ -77,55 +55,13 @@
 		return m + ':' + ( s < 10 ? '0' : '' ) + s;
 	}
 
-	// -- Step 1: Wallet Connection --
-
-	function initWalletStep() {
-		var connectBtn = $( 'uc-connect-wallet' );
-
-		connectBtn.addEventListener( 'click', async function () {
-			if ( !window.ethereum ) {
-				setStatus( 'uc-wallet-status', 'No Ethereum wallet detected. Please install MetaMask.', 'error' );
-				return;
-			}
-
-			try {
-				connectBtn.disabled = true;
-				setStatus( 'uc-wallet-status', 'Requesting wallet connection...', '' );
-
-				var accounts = await window.ethereum.request( {
-					method: 'eth_requestAccounts'
-				} );
-
-				if ( accounts.length === 0 ) {
-					setStatus( 'uc-wallet-status', 'No accounts available.', 'error' );
-					connectBtn.disabled = false;
-					return;
-				}
-
-				walletAddress = accounts[ 0 ];
-				setStatus( 'uc-wallet-status',
-					'Connected: ' + walletAddress.slice( 0, 6 ) + '...' + walletAddress.slice( -4 ),
-					'success'
-				);
-				connectBtn.textContent = 'Connected';
-
-				// Advance to upload step
-				showStep( 'uc-step-upload' );
-
-			} catch ( err ) {
-				setStatus( 'uc-wallet-status', 'Connection failed: ' + err.message, 'error' );
-				connectBtn.disabled = false;
-			}
-		} );
-	}
-
-	// -- Step 2: File Upload --
+	// -- Step 1: File Upload --
 
 	function initUploadStep() {
-		var dropzone = $( 'uc-dropzone' );
-		var fileInput = $( 'uc-file-input' );
-		var fileList = $( 'uc-file-list' );
-		var uploadBtn = $( 'uc-upload-btn' );
+		var dropzone = el( 'uc-dropzone' );
+		var fileInput = el( 'uc-file-input' );
+		var fileList = el( 'uc-file-list' );
+		var uploadBtn = el( 'uc-upload-btn' );
 		var selectedFiles = [];
 
 		dropzone.addEventListener( 'click', function () {
@@ -171,7 +107,6 @@
 				fileList.appendChild( item );
 			} );
 
-			// Bind remove buttons
 			fileList.querySelectorAll( '.uc-file-remove' ).forEach( function ( btn ) {
 				btn.addEventListener( 'click', function () {
 					selectedFiles.splice( parseInt( btn.dataset.idx ), 1 );
@@ -182,61 +117,89 @@
 			uploadBtn.disabled = selectedFiles.length === 0;
 		}
 
-		uploadBtn.addEventListener( 'click', async function () {
+		uploadBtn.addEventListener( 'click', function () {
 			if ( selectedFiles.length === 0 ) {
 				return;
 			}
-
-			try {
-				uploadBtn.disabled = true;
-				setStatus( 'uc-upload-status', 'Signing authorization...', '' );
-
-				var headers = await getAuthHeaders();
-
-				setStatus( 'uc-upload-status', 'Uploading ' + selectedFiles.length + ' file(s)...', '' );
-
-				var formData = new FormData();
-				selectedFiles.forEach( function ( file ) {
-					formData.append( 'files', file );
-				} );
-
-				var resp = await fetch( DELIVERY_KID_URL + '/draft-content', {
-					method: 'POST',
-					headers: headers,
-					body: formData
-				} );
-
-				if ( !resp.ok ) {
-					var err = await resp.json().catch( function () {
-						return { detail: resp.statusText };
-					} );
-					throw new Error( err.detail || 'Upload failed' );
-				}
-
-				var draft = await resp.json();
-				currentDraftId = draft.draft_id;
-				currentDraftFiles = draft.files;
-
-				setStatus( 'uc-upload-status', 'Draft created: ' + currentDraftId.slice( 0, 8 ) + '...', 'success' );
-
-				// Advance to review
-				renderReviewStep( draft );
-				showStep( 'uc-step-review' );
-
-			} catch ( err ) {
-				setStatus( 'uc-upload-status', 'Upload failed: ' + err.message, 'error' );
-				uploadBtn.disabled = false;
-			}
+			doUpload( selectedFiles );
 		} );
 	}
 
-	// -- Step 3: Review & Metadata --
+	function doUpload( files ) {
+		var uploadBtn = el( 'uc-upload-btn' );
+		var progressBar = el( 'uc-upload-progress' );
+		var progressFill = progressBar.querySelector( '.uc-progress-fill' );
 
-	function renderReviewStep( draft ) {
-		var info = $( 'uc-draft-info' );
+		uploadBtn.disabled = true;
+		progressBar.style.display = '';
+		setStatus( 'uc-upload-status', 'Uploading ' + files.length + ' file(s)...', '' );
+
+		var formData = new FormData();
+		files.forEach( function ( file ) {
+			formData.append( 'files', file );
+		} );
+
+		var xhr = new XMLHttpRequest();
+		xhr.open( 'POST', API_URL + '/draft-content' );
+
+		// Set auth headers
+		Object.keys( AUTH_HEADERS ).forEach( function ( key ) {
+			xhr.setRequestHeader( key, AUTH_HEADERS[ key ] );
+		} );
+
+		xhr.upload.addEventListener( 'progress', function ( e ) {
+			if ( e.lengthComputable ) {
+				var pct = Math.round( ( e.loaded / e.total ) * 100 );
+				progressFill.style.width = pct + '%';
+				setStatus( 'uc-upload-status',
+					'Uploading... ' + formatSize( e.loaded ) + ' / ' + formatSize( e.total ) +
+					' (' + pct + '%)', '' );
+			}
+		} );
+
+		xhr.addEventListener( 'load', function () {
+			progressBar.style.display = 'none';
+
+			if ( xhr.status !== 200 ) {
+				var err;
+				try {
+					err = JSON.parse( xhr.responseText );
+				} catch ( e ) {
+					err = { detail: xhr.statusText };
+				}
+				setStatus( 'uc-upload-status',
+					'Upload failed: ' + ( err.detail || xhr.statusText ), 'error' );
+				uploadBtn.disabled = false;
+				return;
+			}
+
+			var draft = JSON.parse( xhr.responseText );
+			currentDraftId = draft.draft_id;
+
+			setStatus( 'uc-upload-status',
+				'Draft created: ' + currentDraftId.slice( 0, 8 ) + '...', 'success' );
+
+			renderReview( draft );
+			showStep( 'uc-step-review' );
+		} );
+
+		xhr.addEventListener( 'error', function () {
+			progressBar.style.display = 'none';
+			setStatus( 'uc-upload-status', 'Network error during upload.', 'error' );
+			uploadBtn.disabled = false;
+		} );
+
+		xhr.send( formData );
+	}
+
+	// -- Step 2: Review & Metadata --
+
+	function renderReview( draft ) {
+		var info = el( 'uc-draft-info' );
 		var html = '<table class="wikitable">';
 		html += '<tr><th>File</th><th>Type</th><th>Format</th><th>Duration</th><th>Size</th></tr>';
 
+		var hasVideo = false;
 		draft.files.forEach( function ( f ) {
 			html += '<tr>';
 			html += '<td>' + mw.html.escape( f.original_filename ) + '</td>';
@@ -246,7 +209,6 @@
 			html += '<td>' + formatSize( f.size_bytes ) + '</td>';
 			html += '</tr>';
 
-			// Show extra details for video/audio
 			if ( f.width && f.height ) {
 				html += '<tr><td></td><td colspan="4">' + f.width + 'x' + f.height;
 				if ( f.video_codec ) {
@@ -257,58 +219,48 @@
 				}
 				html += '</td></tr>';
 			}
+
+			if ( f.media_type === 'video' ) {
+				hasVideo = true;
+			}
 		} );
 
 		html += '</table>';
 		html += '<p class="uc-draft-expires">Draft expires: ' +
 			new Date( draft.expires_at ).toLocaleString() + '</p>';
-
 		info.innerHTML = html;
 
-		// Pre-fill title from first file if only one
+		// Pre-fill title
 		if ( draft.files.length === 1 && draft.files[ 0 ].detected_title ) {
-			$( 'uc-title' ).value = draft.files[ 0 ].detected_title;
+			el( 'uc-title' ).value = draft.files[ 0 ].detected_title;
 		}
 
-		// Show HLS option only if there's a video file
-		var hasVideo = draft.files.some( function ( f ) {
-			return f.media_type === 'video';
-		} );
-		$( 'uc-transcode-hls' ).parentElement.parentElement.style.display = hasVideo ? '' : 'none';
+		el( 'uc-hls-field' ).style.display = hasVideo ? '' : 'none';
 	}
 
 	function initReviewStep() {
-		$( 'uc-finalize-btn' ).addEventListener( 'click', async function () {
-			await startFinalization();
+		el( 'uc-finalize-btn' ).addEventListener( 'click', function () {
+			startFinalization();
 		} );
 
-		$( 'uc-delete-draft-btn' ).addEventListener( 'click', async function () {
-			if ( !currentDraftId ) {
+		el( 'uc-delete-draft-btn' ).addEventListener( 'click', function () {
+			if ( !currentDraftId || !confirm( 'Delete this draft? This cannot be undone.' ) ) {
 				return;
 			}
-			if ( !confirm( 'Delete this draft? This cannot be undone.' ) ) {
-				return;
-			}
-
-			try {
-				var headers = await getAuthHeaders();
-				await fetch( DELIVERY_KID_URL + '/draft-content/' + currentDraftId, {
-					method: 'DELETE',
-					headers: headers
-				} );
+			fetch( API_URL + '/draft-content/' + currentDraftId, {
+				method: 'DELETE',
+				headers: AUTH_HEADERS
+			} ).then( function () {
 				currentDraftId = null;
-				currentDraftFiles = null;
 				showStep( 'uc-step-upload' );
 				setStatus( 'uc-upload-status', 'Draft deleted.', '' );
-			} catch ( err ) {
-				setStatus( 'uc-progress-status', 'Delete failed: ' + err.message, 'error' );
-			}
+			} );
 		} );
 	}
 
-	// -- Step 4: Finalization --
+	// -- Step 3: Finalize --
 
-	async function startFinalization() {
+	function startFinalization() {
 		if ( !currentDraftId ) {
 			return;
 		}
@@ -317,83 +269,84 @@
 		setProgress( 0 );
 		setStatus( 'uc-progress-status', 'Starting finalization...', '' );
 
-		try {
-			var headers = await getAuthHeaders();
-			headers[ 'Content-Type' ] = 'application/json';
+		var headers = Object.assign( {}, AUTH_HEADERS, {
+			'Content-Type': 'application/json'
+		} );
 
-			var body = {
-				title: $( 'uc-title' ).value || null,
-				description: $( 'uc-description' ).value || null,
-				file_type: $( 'uc-file-type' ).value || null,
-				subsequent_to: $( 'uc-subsequent-to' ).value || null,
-				transcode_hls: $( 'uc-transcode-hls' ).checked,
-				metadata: {}
-			};
+		var body = JSON.stringify( {
+			title: el( 'uc-title' ).value || null,
+			description: el( 'uc-description' ).value || null,
+			file_type: el( 'uc-file-type' ).value || null,
+			subsequent_to: el( 'uc-subsequent-to' ).value || null,
+			transcode_hls: el( 'uc-transcode-hls' ).checked,
+			metadata: {}
+		} );
 
-			var resp = await fetch(
-				DELIVERY_KID_URL + '/draft-content/' + currentDraftId + '/finalize',
-				{
-					method: 'POST',
-					headers: headers,
-					body: JSON.stringify( body )
-				}
-			);
-
+		fetch( API_URL + '/draft-content/' + currentDraftId + '/finalize', {
+			method: 'POST',
+			headers: headers,
+			body: body
+		} ).then( function ( resp ) {
 			if ( !resp.ok ) {
-				var err = await resp.json().catch( function () {
-					return { detail: resp.statusText };
+				return resp.json().then( function ( err ) {
+					throw new Error( err.detail || resp.statusText );
 				} );
-				throw new Error( err.detail || 'Finalization failed' );
 			}
+			return readSSEStream( resp );
+		} ).catch( function ( err ) {
+			setStatus( 'uc-progress-status', 'Error: ' + err.message, 'error' );
+		} );
+	}
 
-			// Read SSE stream
-			var reader = resp.body.getReader();
-			var decoder = new TextDecoder();
-			var buffer = '';
+	function readSSEStream( resp ) {
+		var reader = resp.body.getReader();
+		var decoder = new TextDecoder();
+		var buffer = '';
 
-			while ( true ) {
-				var result = await reader.read();
+		function pump() {
+			return reader.read().then( function ( result ) {
 				if ( result.done ) {
-					break;
+					return;
 				}
 
 				buffer += decoder.decode( result.value, { stream: true } );
 				var lines = buffer.split( '\n' );
-				buffer = lines.pop(); // Keep incomplete line in buffer
+				buffer = lines.pop();
 
 				var currentEvent = '';
 				for ( var i = 0; i < lines.length; i++ ) {
 					var line = lines[ i ].trim();
-					if ( line.startsWith( 'event:' ) ) {
+					if ( line.indexOf( 'event:' ) === 0 ) {
 						currentEvent = line.slice( 6 ).trim();
-					} else if ( line.startsWith( 'data:' ) ) {
+					} else if ( line.indexOf( 'data:' ) === 0 ) {
 						var data = line.slice( 5 ).trim();
 						try {
 							handleSSEEvent( currentEvent, JSON.parse( data ) );
 						} catch ( e ) {
-							// Skip malformed data
+							// skip malformed
 						}
 					}
 				}
-			}
-		} catch ( err ) {
-			setStatus( 'uc-progress-status', 'Error: ' + err.message, 'error' );
+
+				return pump();
+			} );
 		}
+
+		return pump();
 	}
 
 	function handleSSEEvent( event, data ) {
 		if ( event === 'progress' ) {
 			setProgress( data.progress || 0 );
 			setStatus( 'uc-progress-status', data.message || '', '' );
-
 		} else if ( event === 'complete' ) {
 			setProgress( 100 );
 			setStatus( 'uc-progress-status', 'Pinning complete!', 'success' );
 			renderResult( data );
 			currentDraftId = null;
-
 		} else if ( event === 'error' ) {
-			setStatus( 'uc-progress-status', 'Error: ' + ( data.message || 'Unknown error' ), 'error' );
+			setStatus( 'uc-progress-status',
+				'Error: ' + ( data.message || 'Unknown error' ), 'error' );
 		}
 	}
 
@@ -405,7 +358,7 @@
 	}
 
 	function renderResult( data ) {
-		var resultEl = $( 'uc-result' );
+		var resultEl = el( 'uc-result' );
 		var releaseUrl = mw.util.getUrl( 'Release:' + data.cid );
 
 		var html = '<div class="uc-result-card">';
@@ -414,12 +367,16 @@
 		if ( data.title ) {
 			html += '<tr><th>Title</th><td>' + mw.html.escape( data.title ) + '</td></tr>';
 		}
-		html += '<tr><th>CID</th><td class="release-cid-cell">' + mw.html.escape( data.cid ) + '</td></tr>';
-		html += '<tr><th>Gateway</th><td><a href="' + mw.html.escape( data.gateway_url ) +
-			'" target="_blank">' + mw.html.escape( data.gateway_url ) + '</a></td></tr>';
+		html += '<tr><th>CID</th><td class="release-cid-cell">' +
+			mw.html.escape( data.cid ) + '</td></tr>';
+		if ( data.gateway_url ) {
+			html += '<tr><th>Gateway</th><td><a href="' + mw.html.escape( data.gateway_url ) +
+				'" target="_blank">' + mw.html.escape( data.gateway_url ) + '</a></td></tr>';
+		}
 		html += '<tr><th>Pinata</th><td>' + ( data.pinata ? 'Yes' : 'No' ) + '</td></tr>';
 		if ( data.subsequent_to ) {
-			html += '<tr><th>Supersedes</th><td>' + mw.html.escape( data.subsequent_to ) + '</td></tr>';
+			html += '<tr><th>Supersedes</th><td>' +
+				mw.html.escape( data.subsequent_to ) + '</td></tr>';
 		}
 		html += '</table>';
 		html += '<p><a href="' + mw.html.escape( releaseUrl ) +
@@ -429,7 +386,7 @@
 
 		resultEl.innerHTML = html;
 
-		$( 'uc-start-over' ).addEventListener( 'click', function () {
+		el( 'uc-start-over' ).addEventListener( 'click', function () {
 			resultEl.innerHTML = '';
 			showStep( 'uc-step-upload' );
 		} );
@@ -438,13 +395,12 @@
 	// -- Init --
 
 	function init() {
-		if ( !DELIVERY_KID_URL ) {
-			document.querySelector( '.uc-step' ).innerHTML =
-				'<p class="uc-status uc-status-error">Delivery Kid URL not configured. Set $wgDeliveryKidUrl in LocalSettings.php.</p>';
+		if ( !API_URL ) {
+			el( 'uc-step-upload' ).innerHTML =
+				'<p class="uc-status uc-status-error">Delivery Kid URL not configured.</p>';
 			return;
 		}
 
-		initWalletStep();
 		initUploadStep();
 		initReviewStep();
 	}

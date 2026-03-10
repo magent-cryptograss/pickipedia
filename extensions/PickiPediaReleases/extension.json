@@ -55,13 +55,25 @@
 		"ext.pickipediaReleases.styles": {
 			"styles": ["ext.pickipediaReleases.css"]
 		},
-"ext.pickipediaReleases.upload.styles": {
+		"ext.pickipediaReleases.upload.styles": {
 			"styles": ["ext.pickipediaReleases.upload.css"]
+		},
+		"ext.pickipediaReleases.upload": {
+			"scripts": ["ext.pickipediaReleases.upload.js"],
+			"dependencies": ["mediawiki.util"]
 		}
 	},
 	"ResourceFileModulePaths": {
 		"localBasePath": "resources",
 		"remoteExtPath": "PickiPediaReleases/resources"
+	},
+	"AvailableRights": [
+		"upload-to-delivery-kid"
+	],
+	"GroupPermissions": {
+		"sysop": {
+			"upload-to-delivery-kid": true
+		}
 	},
 	"config": {
 		"DeliveryKidUrl": {
