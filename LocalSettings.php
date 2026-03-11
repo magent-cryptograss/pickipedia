@@ -243,7 +243,9 @@ wfLoadExtension( 'EmbedVideo' );
 # Stores IPFS CIDs and BitTorrent infohashes for pinning service sync
 wfLoadExtension( 'PickiPediaReleases' );
 $wgDeliveryKidUrl = getenv('DELIVERY_KID_URL') ?: 'https://delivery-kid.cryptograss.live';
-$wgDeliveryKidApiKey = getenv('DELIVERY_KID_API_KEY') ?: '';
+if ( getenv('DELIVERY_KID_API_KEY') ) {
+	$wgDeliveryKidApiKey = getenv('DELIVERY_KID_API_KEY');
+}
 
 # Echo - notifications for talk page messages, mentions, watchlist changes
 wfLoadExtension( 'Echo' );
