@@ -287,19 +287,25 @@
 			var data = collectFormData();
 			var draftId = data.draft_id;
 			if ( !draftId ) {
-				setStatus( 'No draft ID — cannot finalize.', 'error' );
+				showFinalizeError( 'No draft ID — cannot finalize.' );
 				return;
 			}
 
 			var album = data.album || {};
 			if ( !album.title ) {
-				setStatus( 'Album title is required to finalize.', 'error' );
+				showFinalizeError( 'Album title is required to finalize.' );
 				el( 'rd-album-title' ).focus();
 				return;
 			}
 			if ( !album.artist ) {
-				setStatus( 'Artist is required to finalize.', 'error' );
+				showFinalizeError( 'Artist is required to finalize.' );
 				el( 'rd-artist' ).focus();
+				return;
+			}
+
+			var apiUrl = mw.config.get( 'wgDeliveryKidUrl' );
+			if ( !apiUrl ) {
+				showFinalizeError( 'Delivery Kid is not configured. An admin needs to set DeliveryKidApiKey in LocalSettings.php.' );
 				return;
 			}
 
@@ -326,7 +332,6 @@
 				};
 			} );
 
-			var apiUrl = mw.config.get( 'wgDeliveryKidUrl' );
 			var authHeaders = {
 				'X-Upload-Token': mw.config.get( 'wgUploadToken' ),
 				'X-Upload-User': mw.config.get( 'wgUploadUser' ),
@@ -365,11 +370,20 @@
 				}
 				return readSSEStream( resp );
 			} ).catch( function ( err ) {
-				setStatus( 'Finalization error: ' + err.message, 'error' );
+				showFinalizeError( 'Finalization error: ' + err.message );
 				finalizeBtn.disabled = false;
 				el( 'rd-save-btn' ).disabled = false;
 			} );
 		} );
+	}
+
+	function showFinalizeError( msg ) {
+		// Always make the progress area visible so the error is seen
+		var progressDiv = el( 'rd-finalize-progress' );
+		if ( progressDiv ) {
+			progressDiv.style.display = '';
+		}
+		setStatus( msg, 'error' );
 	}
 
 	function readSSEStream( resp ) {
@@ -424,7 +438,7 @@
 			setStatus( 'Album pinned to IPFS!', 'success' );
 			saveResultToPage( data );
 		} else if ( event === 'error' ) {
-			setStatus( 'Error: ' + ( data.message || 'Unknown error' ), 'error' );
+			showFinalizeError( 'Error: ' + ( data.message || 'Unknown error' ) );
 			var finalizeBtn = el( 'rd-finalize-btn' );
 			var saveBtn = el( 'rd-save-btn' );
 			if ( finalizeBtn ) {
