@@ -1,10 +1,8 @@
 /**
  * Upload Album — direct upload to delivery-kid from browser.
  *
- * Three-step flow using /draft-album:
- * 1. Upload audio + cover → delivery-kid analyzes tracks
- * 2. Review: reorder tracks, edit titles, set album metadata
- * 3. Finalize → transcode FLAC/WAV→OGG, embed tags, pin to IPFS
+ * After upload+analysis, creates a ReleaseDraft wiki page and redirects there.
+ * The ReleaseDraft namespace handles review, metadata editing, and finalization.
  */
 ( function () {
 	'use strict';
@@ -15,26 +13,6 @@
 		'X-Upload-User': mw.config.get( 'wgUploadUser' ),
 		'X-Upload-Timestamp': String( mw.config.get( 'wgUploadTimestamp' ) )
 	};
-
-	var currentDraftId = null;
-	var draftFiles = []; // analyzed files from draft response
-
-	// -- URL draft persistence --
-
-	function getDraftIdFromUrl() {
-		var params = new URLSearchParams( window.location.search );
-		return params.get( 'draft' );
-	}
-
-	function setDraftIdInUrl( draftId ) {
-		var url = new URL( window.location.href );
-		if ( draftId ) {
-			url.searchParams.set( 'draft', draftId );
-		} else {
-			url.searchParams.delete( 'draft' );
-		}
-		history.replaceState( null, '', url.toString() );
-	}
 
 	// -- Helpers --
 
@@ -48,13 +26,6 @@
 		e.className = 'uc-status' + ( type ? ' uc-status-' + type : '' );
 	}
 
-	function showStep( stepId ) {
-		document.querySelectorAll( '.uc-step' ).forEach( function ( s ) {
-			s.classList.remove( 'uc-step-active' );
-		} );
-		el( stepId ).classList.add( 'uc-step-active' );
-	}
-
 	function formatSize( bytes ) {
 		var units = [ 'B', 'KB', 'MB', 'GB' ];
 		var size = bytes;
@@ -66,16 +37,7 @@
 		return size.toFixed( 1 ) + ' ' + units[ i ];
 	}
 
-	function formatDuration( seconds ) {
-		if ( !seconds ) {
-			return '';
-		}
-		var m = Math.floor( seconds / 60 );
-		var s = Math.floor( seconds % 60 );
-		return m + ':' + ( s < 10 ? '0' : '' ) + s;
-	}
-
-	// -- Step 1: File Upload --
+	// -- File Upload --
 
 	function initUploadStep() {
 		var dropzone = el( 'ua-dropzone' );
@@ -162,7 +124,6 @@
 		var xhr = new XMLHttpRequest();
 		xhr.open( 'POST', API_URL + '/draft-album' );
 
-		// Set auth headers
 		Object.keys( AUTH_HEADERS ).forEach( function ( key ) {
 			xhr.setRequestHeader( key, AUTH_HEADERS[ key ] );
 		} );
@@ -204,15 +165,10 @@
 			}
 
 			var draft = JSON.parse( xhr.responseText );
-			currentDraftId = draft.draft_id;
-			draftFiles = draft.files;
-			setDraftIdInUrl( currentDraftId );
-
 			setStatus( 'ua-upload-status',
-				'Draft created. ' + draftFiles.length + ' track(s) analyzed.', 'success' );
+				'Draft created. ' + draft.files.length + ' track(s) analyzed. Creating draft page...', 'success' );
 
-			renderReview( draft );
-			showStep( 'ua-step-review' );
+			createReleaseDraftPage( draft );
 		} );
 
 		xhr.addEventListener( 'error', function () {
@@ -224,351 +180,94 @@
 		xhr.send( formData );
 	}
 
-	// -- Step 2: Review & Track Ordering --
+	// -- Create ReleaseDraft wiki page and redirect --
 
-	function renderReview( draft ) {
-		// Show analysis summary
-		var info = el( 'ua-draft-info' );
-		var totalDuration = 0;
-		var totalSize = 0;
-		var formats = {};
+	function createReleaseDraftPage( draft ) {
+		var draftId = draft.draft_id;
+		var pageName = 'ReleaseDraft:' + draftId;
 
-		draft.files.forEach( function ( f ) {
-			if ( f.duration_seconds ) {
-				totalDuration += f.duration_seconds;
-			}
-			if ( f.size_bytes ) {
-				totalSize += f.size_bytes;
-			}
-			formats[ f.format ] = ( formats[ f.format ] || 0 ) + 1;
+		// Build initial YAML from delivery-kid analysis
+		var tracks = ( draft.files || [] ).map( function ( f ) {
+			var title = f.detected_title || f.original_filename.replace( /\.[^.]+$/, '' );
+			return {
+				filename: f.original_filename,
+				title: title,
+				format: f.format || '',
+				duration: f.duration_seconds || null,
+				size_bytes: f.size_bytes || null,
+				metadata: ''
+			};
 		} );
 
-		var formatSummary = Object.keys( formats ).map( function ( fmt ) {
-			return formats[ fmt ] + ' ' + fmt;
-		} ).join( ', ' );
+		var yaml = buildYaml( draftId, tracks );
 
-		info.innerHTML =
-			'<p>' + draft.files.length + ' tracks &middot; ' +
-			formatDuration( totalDuration ) + ' total &middot; ' +
-			formatSize( totalSize ) + ' &middot; ' + formatSummary + '</p>' +
-			'<p class="uc-draft-expires">Draft expires: ' +
-			new Date( draft.expires_at ).toLocaleString() + '</p>';
-
-		// Render track list
-		renderTrackList( draft.files );
-	}
-
-	function renderTrackList( files ) {
-		var container = el( 'ua-track-list' );
-		container.innerHTML = '';
-
-		files.forEach( function ( file, idx ) {
-			var row = document.createElement( 'div' );
-			row.className = 'ua-track-row';
-			row.draggable = true;
-			row.dataset.idx = idx;
-
-			var title = file.detected_title || file.original_filename.replace( /\.[^.]+$/, '' );
-
-			row.innerHTML =
-				'<span class="ua-track-handle" title="Drag to reorder">&#9776;</span>' +
-				'<span class="ua-track-num">' + ( idx + 1 ) + '</span>' +
-				'<input type="text" class="ua-track-title cdx-text-input__input" ' +
-					'value="' + mw.html.escape( title ) + '" ' +
-					'data-filename="' + mw.html.escape( file.original_filename ) + '">' +
-				'<span class="ua-track-meta">' +
-					mw.html.escape( file.format ) + ' &middot; ' +
-					formatDuration( file.duration_seconds ) + ' &middot; ' +
-					formatSize( file.size_bytes ) +
-				'</span>';
-
-			container.appendChild( row );
-		} );
-
-		initDragReorder( container );
-	}
-
-	function initDragReorder( container ) {
-		var dragSrc = null;
-
-		container.addEventListener( 'dragstart', function ( e ) {
-			var row = e.target.closest( '.ua-track-row' );
-			if ( !row ) {
-				return;
+		var api = new mw.Api();
+		api.postWithEditToken( {
+			action: 'edit',
+			title: pageName,
+			text: yaml,
+			summary: 'New album draft: ' + draft.files.length + ' tracks uploaded',
+			createonly: true
+		} ).then( function () {
+			// Redirect to the new draft page
+			window.location.href = mw.util.getUrl( pageName );
+		} ).fail( function ( code, result ) {
+			if ( code === 'articleexists' ) {
+				// Draft page already exists (maybe re-upload?) — just redirect
+				window.location.href = mw.util.getUrl( pageName );
+			} else {
+				setStatus( 'ua-upload-status',
+					'Failed to create draft page: ' + ( result.error ? result.error.info : code ), 'error' );
+				el( 'ua-upload-btn' ).disabled = false;
 			}
-			dragSrc = row;
-			row.classList.add( 'ua-track-dragging' );
-			e.dataTransfer.effectAllowed = 'move';
-		} );
-
-		container.addEventListener( 'dragover', function ( e ) {
-			e.preventDefault();
-			e.dataTransfer.dropEffect = 'move';
-			var row = e.target.closest( '.ua-track-row' );
-			if ( row && row !== dragSrc ) {
-				var rect = row.getBoundingClientRect();
-				var midY = rect.top + rect.height / 2;
-				if ( e.clientY < midY ) {
-					container.insertBefore( dragSrc, row );
-				} else {
-					container.insertBefore( dragSrc, row.nextSibling );
-				}
-			}
-		} );
-
-		container.addEventListener( 'dragend', function () {
-			if ( dragSrc ) {
-				dragSrc.classList.remove( 'ua-track-dragging' );
-				dragSrc = null;
-			}
-			renumberTracks( container );
 		} );
 	}
 
-	function renumberTracks( container ) {
-		var rows = container.querySelectorAll( '.ua-track-row' );
-		rows.forEach( function ( row, idx ) {
-			row.dataset.idx = idx;
-			row.querySelector( '.ua-track-num' ).textContent = idx + 1;
+	function buildYaml( draftId, tracks ) {
+		var lines = [];
+		lines.push( 'draft_id: ' + draftId );
+		lines.push( 'type: album' );
+		lines.push( 'status: draft' );
+		lines.push( 'blockheight: null' );
+		lines.push( 'album:' );
+		lines.push( '    title: ""' );
+		lines.push( '    artist: ""' );
+		lines.push( '    year: ""' );
+		lines.push( '    description: ""' );
+		lines.push( 'tracks:' );
+
+		tracks.forEach( function ( track ) {
+			lines.push( '    -' );
+			lines.push( '        filename: ' + quote( track.filename ) );
+			lines.push( '        title: ' + quote( track.title ) );
+			if ( track.format ) {
+				lines.push( '        format: ' + quote( track.format ) );
+			}
+			if ( track.duration ) {
+				lines.push( '        duration: ' + track.duration );
+			}
+			if ( track.size_bytes ) {
+				lines.push( '        size_bytes: ' + track.size_bytes );
+			}
+			lines.push( '        metadata: ""' );
 		} );
+
+		lines.push( 'result:' );
+		lines.push( '    cid: null' );
+		lines.push( '    gateway_url: null' );
+
+		return lines.join( '\n' ) + '\n';
 	}
 
-	function getTrackOrder() {
-		var rows = el( 'ua-track-list' ).querySelectorAll( '.ua-track-row' );
-		var tracks = [];
-		rows.forEach( function ( row ) {
-			var input = row.querySelector( '.ua-track-title' );
-			tracks.push( {
-				filename: input.dataset.filename,
-				title: input.value
-			} );
-		} );
-		return tracks;
-	}
-
-	function initReviewStep() {
-		el( 'ua-finalize-btn' ).addEventListener( 'click', function () {
-			var albumTitle = el( 'ua-album-title' ).value.trim();
-			var artist = el( 'ua-artist' ).value.trim();
-
-			if ( !albumTitle ) {
-				setStatus( 'ua-upload-status', 'Album title is required.', 'error' );
-				el( 'ua-album-title' ).focus();
-				return;
-			}
-			if ( !artist ) {
-				setStatus( 'ua-upload-status', 'Artist is required.', 'error' );
-				el( 'ua-artist' ).focus();
-				return;
-			}
-
-			startFinalization();
-		} );
-
-		el( 'ua-delete-draft-btn' ).addEventListener( 'click', function () {
-			if ( !currentDraftId || !confirm( 'Delete this draft? This cannot be undone.' ) ) {
-				return;
-			}
-			fetch( API_URL + '/draft-album/' + currentDraftId, {
-				method: 'DELETE',
-				headers: AUTH_HEADERS
-			} ).then( function () {
-				currentDraftId = null;
-				draftFiles = [];
-				setDraftIdInUrl( null );
-				showStep( 'ua-step-upload' );
-				setStatus( 'ua-upload-status', 'Draft deleted.', '' );
-			} );
-		} );
-	}
-
-	// -- Step 3: Finalize --
-
-	function startFinalization() {
-		if ( !currentDraftId ) {
-			return;
+	function quote( val ) {
+		if ( val === '' || val === null || val === undefined ) {
+			return '""';
 		}
-
-		showStep( 'ua-step-progress' );
-		setProgress( 0 );
-		setStatus( 'ua-progress-status', 'Starting album finalization...', '' );
-
-		var headers = Object.assign( {}, AUTH_HEADERS, {
-			'Content-Type': 'application/json'
-		} );
-
-		var body = JSON.stringify( {
-			album_title: el( 'ua-album-title' ).value.trim(),
-			artist: el( 'ua-artist' ).value.trim(),
-			year: el( 'ua-year' ).value.trim() || null,
-			description: el( 'ua-description' ).value.trim() || null,
-			tracks: getTrackOrder()
-		} );
-
-		fetch( API_URL + '/draft-album/' + currentDraftId + '/finalize', {
-			method: 'POST',
-			headers: headers,
-			body: body
-		} ).then( function ( resp ) {
-			if ( !resp.ok ) {
-				return resp.json().then( function ( err ) {
-					throw new Error( err.detail || resp.statusText );
-				} );
-			}
-			return readSSEStream( resp );
-		} ).catch( function ( err ) {
-			setStatus( 'ua-progress-status', 'Error: ' + err.message, 'error' );
-		} );
-	}
-
-	function readSSEStream( resp ) {
-		var reader = resp.body.getReader();
-		var decoder = new TextDecoder();
-		var buffer = '';
-
-		function pump() {
-			return reader.read().then( function ( result ) {
-				if ( result.done ) {
-					return;
-				}
-
-				buffer += decoder.decode( result.value, { stream: true } );
-				var lines = buffer.split( '\n' );
-				buffer = lines.pop();
-
-				var currentEvent = '';
-				for ( var i = 0; i < lines.length; i++ ) {
-					var line = lines[ i ].trim();
-					if ( line.indexOf( 'event:' ) === 0 ) {
-						currentEvent = line.slice( 6 ).trim();
-					} else if ( line.indexOf( 'data:' ) === 0 ) {
-						var data = line.slice( 5 ).trim();
-						try {
-							handleSSEEvent( currentEvent, JSON.parse( data ) );
-						} catch ( e ) {
-							// skip malformed
-						}
-					}
-				}
-
-				return pump();
-			} );
+		val = String( val );
+		if ( /[:#\[\]{}&*!|>'"%@`\n]/.test( val ) || val.trim() !== val ) {
+			return '"' + val.replace( /\\/g, '\\\\' ).replace( /"/g, '\\"' ).replace( /\n/g, '\\n' ) + '"';
 		}
-
-		return pump();
-	}
-
-	function handleSSEEvent( event, data ) {
-		if ( event === 'progress' ) {
-			setProgress( data.progress || 0 );
-			var msg = data.message || '';
-			if ( data.track ) {
-				msg += ' (' + data.track + ')';
-			}
-			setStatus( 'ua-progress-status', msg, '' );
-		} else if ( event === 'warning' ) {
-			setStatus( 'ua-progress-status', 'Warning: ' + data.message, 'warning' );
-		} else if ( event === 'complete' ) {
-			setProgress( 100 );
-			setStatus( 'ua-progress-status', 'Album pinned!', 'success' );
-			renderResult( data );
-			currentDraftId = null;
-			draftFiles = [];
-			setDraftIdInUrl( null );
-		} else if ( event === 'error' ) {
-			setStatus( 'ua-progress-status',
-				'Error: ' + ( data.message || 'Unknown error' ), 'error' );
-		}
-	}
-
-	function setProgress( pct ) {
-		var fill = document.querySelector( '#ua-progress-bar .uc-progress-fill' );
-		if ( fill ) {
-			fill.style.width = pct + '%';
-		}
-	}
-
-	function renderResult( data ) {
-		var resultEl = el( 'ua-result' );
-		var releaseUrl = mw.util.getUrl( 'Release:' + data.cid );
-
-		var html = '<div class="uc-result-card">';
-		html += '<h4>' + mw.html.escape( data.album_title || 'Album' ) +
-			' &mdash; ' + mw.html.escape( data.artist || '' ) + '</h4>';
-		html += '<table class="wikitable">';
-		html += '<tr><th>CID</th><td class="release-cid-cell">' +
-			mw.html.escape( data.cid ) + '</td></tr>';
-		if ( data.gateway_url ) {
-			html += '<tr><th>Gateway</th><td><a href="' + mw.html.escape( data.gateway_url ) +
-				'" target="_blank">' + mw.html.escape( data.gateway_url ) + '</a></td></tr>';
-		}
-		html += '<tr><th>Pinata</th><td>' + ( data.pinata ? 'Yes' : 'No' ) + '</td></tr>';
-		html += '</table>';
-
-		// Track listing
-		if ( data.tracks && data.tracks.length ) {
-			html += '<h5>Tracks</h5><ol>';
-			data.tracks.forEach( function ( t ) {
-				html += '<li>' + mw.html.escape( t.title || t.filename ) + '</li>';
-			} );
-			html += '</ol>';
-		}
-
-		html += '<p><a href="' + mw.html.escape( releaseUrl ) +
-			'" class="cdx-button cdx-button--action-progressive">Create Release Page</a></p>';
-		html += '<button id="ua-start-over" class="cdx-button">Upload Another Album</button>';
-		html += '</div>';
-
-		resultEl.innerHTML = html;
-
-		el( 'ua-start-over' ).addEventListener( 'click', function () {
-			resultEl.innerHTML = '';
-			showStep( 'ua-step-upload' );
-		} );
-	}
-
-	// -- Resume draft --
-
-	function resumeDraft( draftId ) {
-		setStatus( 'ua-upload-status', 'Resuming draft ' + draftId.slice( 0, 8 ) + '...', '' );
-
-		fetch( API_URL + '/draft-album/' + draftId, {
-			headers: AUTH_HEADERS
-		} ).then( function ( resp ) {
-			if ( resp.status === 410 ) {
-				setStatus( 'ua-upload-status', 'That draft has expired. Upload again.', 'error' );
-				setDraftIdInUrl( null );
-				return;
-			}
-			if ( resp.status === 404 ) {
-				setStatus( 'ua-upload-status', 'Draft not found. It may have been deleted or finalized.', 'error' );
-				setDraftIdInUrl( null );
-				return;
-			}
-			if ( !resp.ok ) {
-				return resp.json().then( function ( err ) {
-					var msg = ( err.detail && typeof err.detail === 'string' ) ? err.detail : JSON.stringify( err );
-					setStatus( 'ua-upload-status', 'Could not resume draft: ' + msg, 'error' );
-					setDraftIdInUrl( null );
-				} );
-			}
-			return resp.json();
-		} ).then( function ( draft ) {
-			if ( !draft ) {
-				return;
-			}
-			currentDraftId = draft.draft_id;
-			draftFiles = draft.files;
-
-			setStatus( 'ua-upload-status',
-				'Draft resumed. ' + draftFiles.length + ' track(s).', 'success' );
-
-			renderReview( draft );
-			showStep( 'ua-step-review' );
-		} ).catch( function ( err ) {
-			setStatus( 'ua-upload-status', 'Network error resuming draft: ' + err.message, 'error' );
-			setDraftIdInUrl( null );
-		} );
+		return val;
 	}
 
 	// -- Init --
@@ -581,15 +280,8 @@
 		}
 
 		initUploadStep();
-		initReviewStep();
-
-		// Check for draft ID in URL (resume after page reload or shared link)
-		var urlDraftId = getDraftIdFromUrl();
-		if ( urlDraftId ) {
-			resumeDraft( urlDraftId );
-		}
 	}
 
-	mw.loader.using( 'mediawiki.util' ).then( init );
+	mw.loader.using( [ 'mediawiki.util', 'mediawiki.api' ] ).then( init );
 
 }() );

@@ -136,6 +136,9 @@ $wgGroupPermissions['release']['edit'] = true;
 $wgNamespaceProtection[3004] = ['release-edit'];
 $wgGroupPermissions['release']['release-edit'] = true;
 
+# Restrict ReleaseDraft namespace (3006) to users with upload-to-delivery-kid permission
+$wgNamespaceProtection[3006] = ['upload-to-delivery-kid'];
+
 # Make release-edit available as a BotPasswords grant
 $wgGrantPermissions['release-edit']['release-edit'] = true;
 $wgGrantPermissionGroups['release-edit'] = 'other';
@@ -150,8 +153,9 @@ enableSemantics( parse_url($wgServer, PHP_URL_HOST) );
 $smwgNamespacesWithSemanticLinks[NS_CRYPTOGRASS] = true;
 
 # Enable semantic links for Release namespace (after PickiPediaReleases is loaded)
-# Note: NS_RELEASE (3004) is defined by the PickiPediaReleases extension
+# Note: NS_RELEASE (3004) and NS_RELEASEDRAFT (3006) are defined by PickiPediaReleases
 $smwgNamespacesWithSemanticLinks[3004] = true;
+$smwgNamespacesWithSemanticLinks[3006] = true;
 
 # Page Forms - create forms for SMW data entry (installed via Composer)
 wfLoadExtension( 'PageForms' );

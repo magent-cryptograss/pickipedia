@@ -1,6 +1,6 @@
 {
 	"name": "PickiPediaReleases",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"author": ["CryptoGrass", "Magent"],
 	"url": "https://github.com/cryptograss/pickipedia",
 	"descriptionmsg": "pickipediareleases-desc",
@@ -23,10 +23,22 @@
 			"id": 3005,
 			"constant": "NS_RELEASE_TALK",
 			"name": "Release_talk"
+		},
+		{
+			"id": 3006,
+			"constant": "NS_RELEASEDRAFT",
+			"name": "ReleaseDraft",
+			"defaultcontentmodel": "release-draft-yaml"
+		},
+		{
+			"id": 3007,
+			"constant": "NS_RELEASEDRAFT_TALK",
+			"name": "ReleaseDraft_talk"
 		}
 	],
 	"ContentHandlers": {
-		"release-yaml": "MediaWiki\\Extension\\PickiPediaReleases\\ReleaseContentHandler"
+		"release-yaml": "MediaWiki\\Extension\\PickiPediaReleases\\ReleaseContentHandler",
+		"release-draft-yaml": "MediaWiki\\Extension\\PickiPediaReleases\\ReleaseDraftContentHandler"
 	},
 	"SpecialPages": {
 		"Releases": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialReleases",
@@ -44,7 +56,8 @@
 		}
 	},
 	"Hooks": {
-		"LoadExtensionSchemaUpdates": "main"
+		"LoadExtensionSchemaUpdates": "main",
+		"BeforePageDisplay": "main"
 	},
 	"MessagesDirs": {
 		"PickiPediaReleases": ["i18n"]
@@ -65,7 +78,12 @@
 		},
 		"ext.pickipediaReleases.uploadAlbum": {
 			"scripts": ["ext.pickipediaReleases.uploadAlbum.js"],
-			"dependencies": ["mediawiki.util"]
+			"dependencies": ["mediawiki.util", "mediawiki.api"]
+		},
+		"ext.pickipediaReleases.releaseDraft": {
+			"scripts": ["ext.pickipediaReleases.releaseDraft.js"],
+			"styles": ["ext.pickipediaReleases.releaseDraft.css"],
+			"dependencies": ["mediawiki.util", "mediawiki.api"]
 		}
 	},
 	"ResourceFileModulePaths": {
@@ -77,6 +95,9 @@
 	],
 	"GroupPermissions": {
 		"sysop": {
+			"upload-to-delivery-kid": true
+		},
+		"release": {
 			"upload-to-delivery-kid": true
 		}
 	},

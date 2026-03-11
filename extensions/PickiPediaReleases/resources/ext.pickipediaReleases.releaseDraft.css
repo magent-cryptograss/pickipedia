@@ -1,0 +1,172 @@
+/**
+ * Styles for ReleaseDraft namespace pages.
+ */
+
+/* Status banners */
+.rd-status-banner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.75em 1em;
+	margin-bottom: 1.5em;
+	border-radius: 4px;
+	font-size: 0.95em;
+}
+
+.rd-status-draft {
+	background: #eaf3ff;
+	border: 1px solid #36c;
+	color: #36c;
+}
+
+.rd-status-finalizing {
+	background: #fef6e7;
+	border: 1px solid #ac6600;
+	color: #ac6600;
+}
+
+.rd-status-complete {
+	background: #d5fdf4;
+	border: 1px solid #14866d;
+	color: #14866d;
+}
+
+.rd-status-label {
+	font-weight: bold;
+}
+
+.rd-status-type {
+	font-size: 0.85em;
+	opacity: 0.8;
+}
+
+/* Track list */
+.rd-track-list {
+	margin: 0.5em 0 1.5em;
+}
+
+.rd-track-row {
+	display: flex;
+	align-items: flex-start;
+	padding: 0.6em 0.75em;
+	margin: 0.3em 0;
+	background: #fff;
+	border: 1px solid #c8ccd1;
+	border-radius: 3px;
+	gap: 0.5em;
+}
+
+.rd-track-row[draggable="true"] {
+	cursor: grab;
+}
+
+.rd-track-row.rd-track-dragging {
+	opacity: 0.4;
+}
+
+.rd-track-num {
+	font-weight: bold;
+	min-width: 1.5em;
+	text-align: center;
+	color: #54595d;
+	padding-top: 0.3em;
+}
+
+.rd-track-info {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4em;
+}
+
+.rd-track-title {
+	width: 100%;
+}
+
+.rd-track-meta {
+	font-size: 0.8em;
+	color: #72777d;
+}
+
+.rd-track-metadata {
+	width: 100%;
+	font-family: monospace;
+	font-size: 0.85em;
+	resize: vertical;
+	min-height: 2.5em;
+}
+
+/* Blockheight section */
+.rd-blockheight-section {
+	margin: 1.5em 0;
+	padding-top: 1em;
+	border-top: 1px solid #eaecf0;
+}
+
+.rd-blockheight-row {
+	display: flex;
+	align-items: center;
+	gap: 0.75em;
+	flex-wrap: wrap;
+}
+
+.rd-blockheight-input {
+	max-width: 200px;
+}
+
+.rd-blockheight-date {
+	font-size: 0.9em;
+	color: #54595d;
+	font-style: italic;
+}
+
+.rd-date-converter {
+	margin-top: 0.5em;
+}
+
+.rd-date-converter label {
+	font-weight: normal;
+	font-size: 0.9em;
+	color: #72777d;
+	margin-right: 0.5em;
+}
+
+.rd-date-input {
+	max-width: 200px;
+}
+
+/* Action buttons */
+.rd-actions {
+	margin: 1.5em 0;
+	padding-top: 1em;
+	border-top: 1px solid #eaecf0;
+	display: flex;
+	align-items: center;
+	gap: 0.75em;
+	flex-wrap: wrap;
+}
+
+/* Album form */
+.rd-album-form {
+	margin-bottom: 1em;
+}
+
+/* Raw YAML toggle */
+.release-raw-yaml {
+	margin-top: 2em;
+	font-size: 0.9em;
+}
+
+.release-raw-yaml summary {
+	cursor: pointer;
+	color: #72777d;
+}
+
+.release-raw-yaml pre {
+	background: #f8f9fa;
+	border: 1px solid #eaecf0;
+	padding: 0.75em;
+	overflow-x: auto;
+	font-size: 0.85em;
+}

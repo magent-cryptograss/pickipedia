@@ -21,5 +21,8 @@
 	"uploadalbum": "Upload Album",
 	"special-uploadalbum-header": "",
 	"action-upload-to-delivery-kid": "upload content to the delivery-kid pinning service",
-	"right-upload-to-delivery-kid": "Upload content directly to the delivery-kid IPFS pinning service"
+	"right-upload-to-delivery-kid": "Upload content directly to the delivery-kid IPFS pinning service",
+	"releasedraft-missing-draft-id": "Release draft is missing a draft_id field.",
+	"releasedraft-missing-type": "Release draft is missing a type field.",
+	"release-draft-yaml-desc": "YAML metadata for release drafts"
 }
