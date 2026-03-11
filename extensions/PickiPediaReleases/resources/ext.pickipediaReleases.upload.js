@@ -161,14 +161,24 @@
 			progressBar.style.display = 'none';
 
 			if ( xhr.status !== 200 ) {
-				var err;
+				var errMsg;
 				try {
-					err = JSON.parse( xhr.responseText );
+					var err = JSON.parse( xhr.responseText );
+					var detail = err.detail;
+					if ( typeof detail === 'string' ) {
+						errMsg = detail;
+					} else if ( detail && detail.error ) {
+						errMsg = detail.error;
+					} else if ( Array.isArray( detail ) ) {
+						errMsg = detail.map( function ( d ) { return d.msg || JSON.stringify( d ); } ).join( '; ' );
+					} else {
+						errMsg = JSON.stringify( err );
+					}
 				} catch ( e ) {
-					err = { detail: xhr.statusText };
+					errMsg = xhr.status + ' ' + xhr.statusText + ': ' + xhr.responseText.slice( 0, 200 );
 				}
 				setStatus( 'uc-upload-status',
-					'Upload failed: ' + ( err.detail || xhr.statusText ), 'error' );
+					'Upload failed (' + xhr.status + '): ' + errMsg, 'error' );
 				uploadBtn.disabled = false;
 				return;
 			}
