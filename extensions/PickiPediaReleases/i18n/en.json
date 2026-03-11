@@ -17,5 +17,7 @@
 	"special-releases-footer": "",
 	"releases": "Releases",
 	"uploadcontent": "Upload Content",
-	"special-uploadcontent-header": ""
+	"special-uploadcontent-header": "",
+	"uploadalbum": "Upload Album",
+	"special-uploadalbum-header": ""
 }

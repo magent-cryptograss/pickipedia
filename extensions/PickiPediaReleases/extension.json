@@ -30,7 +30,8 @@
 	},
 	"SpecialPages": {
 		"Releases": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialReleases",
-		"UploadContent": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialUploadContent"
+		"UploadContent": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialUploadContent",
+		"UploadAlbum": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialUploadAlbum"
 	},
 	"APIModules": {
 		"releaselist": {
@@ -60,6 +61,10 @@
 		},
 		"ext.pickipediaReleases.upload": {
 			"scripts": ["ext.pickipediaReleases.upload.js"],
+			"dependencies": ["mediawiki.util"]
+		},
+		"ext.pickipediaReleases.uploadAlbum": {
+			"scripts": ["ext.pickipediaReleases.uploadAlbum.js"],
 			"dependencies": ["mediawiki.util"]
 		}
 	},

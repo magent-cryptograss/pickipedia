@@ -12,4 +12,5 @@ $specialPageAliases = [];
 $specialPageAliases['en'] = [
 	'Releases' => [ 'Releases' ],
 	'UploadContent' => [ 'UploadContent', 'Upload Content' ],
+	'UploadAlbum' => [ 'UploadAlbum', 'Upload Album' ],
 ];
