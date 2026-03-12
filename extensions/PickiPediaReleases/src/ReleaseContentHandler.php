@@ -353,7 +353,7 @@ YAML;
 	 * @return string
 	 */
 	private function renderIpfsLink( string $cid ): string {
-		$gatewayUrl = "https://ipfs.io/ipfs/" . strtolower( $cid );
+		$gatewayUrl = "https://ipfs.io/ipfs/" . $cid;
 		$dweb = "ipfs://{$cid}";
 
 		return Html::rawElement( 'span', [ 'class' => 'release-ipfs-link' ],
