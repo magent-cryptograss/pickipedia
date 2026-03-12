@@ -283,6 +283,15 @@
 			return;
 		}
 
+		// Hide action buttons for logged-out users
+		if ( mw.config.get( 'wgUserId' ) === null ) {
+			var actionsDiv = el( 'rd-actions' );
+			if ( actionsDiv ) {
+				actionsDiv.innerHTML = '<p class="uc-status uc-status-error">You must be logged in to save or finalize drafts.</p>';
+			}
+			return;
+		}
+
 		finalizeBtn.addEventListener( 'click', function () {
 			var data = collectFormData();
 			var draftId = data.draft_id;
