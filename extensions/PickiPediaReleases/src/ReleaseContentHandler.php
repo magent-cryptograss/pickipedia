@@ -353,11 +353,14 @@ YAML;
 	 * @return string
 	 */
 	private function renderIpfsLink( string $cid ): string {
-		$gatewayUrl = "https://ipfs.io/ipfs/" . $cid;
-		$dweb = "ipfs://{$cid}";
+		// CIDv1 (bafy...) is Base32 lowercase; MediaWiki capitalizes page titles,
+		// so we must lowercase it back. CIDv0 (Qm...) is Base58, case-sensitive.
+		$normalizedCid = str_starts_with( $cid, 'Bafy' ) ? strtolower( $cid ) : $cid;
+		$gatewayUrl = "https://ipfs.io/ipfs/" . $normalizedCid;
+		$dweb = "ipfs://{$normalizedCid}";
 
 		return Html::rawElement( 'span', [ 'class' => 'release-ipfs-link' ],
-			Html::element( 'code', [], $cid ) . ' ' .
+			Html::element( 'code', [], $normalizedCid ) . ' ' .
 			Html::element( 'a', [ 'href' => $gatewayUrl, 'rel' => 'nofollow' ], '[gateway]' ) . ' ' .
 			Html::element( 'a', [ 'href' => $dweb ], '[ipfs://]' )
 		);
