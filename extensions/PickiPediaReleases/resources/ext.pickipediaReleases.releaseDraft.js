@@ -35,7 +35,7 @@
 			return;
 		}
 		statusEl.textContent = msg;
-		statusEl.className = 'uc-status' + ( type ? ' uc-status-' + type : '' );
+		statusEl.className = 'rd-progress-status' + ( type ? ' rd-status-' + type : '' );
 	}
 
 	// -- Track drag reorder --
@@ -330,7 +330,9 @@
 				progressDiv.style.display = '';
 			}
 			setProgress( 0 );
+			setActiveStage( 'preparing' );
 			setStatus( 'Starting finalization...', '' );
+			appendLog( 'Sending finalize request to delivery-kid...' );
 
 			// Build track order with per-track metadata
 			var tracks = ( data.tracks || [] ).map( function ( t ) {
@@ -392,7 +394,9 @@
 		if ( progressDiv ) {
 			progressDiv.style.display = '';
 		}
+		setStageError();
 		setStatus( msg, 'error' );
+		appendLog( 'ERROR: ' + msg );
 	}
 
 	function readSSEStream( resp ) {
@@ -435,19 +439,33 @@
 	function handleSSEEvent( event, data ) {
 		if ( event === 'progress' ) {
 			setProgress( data.progress || 0 );
+
+			// Detect stage from message content
 			var msg = data.message || '';
-			if ( data.track ) {
-				msg += ' (' + data.track + ')';
+			var stage = data.stage || detectStage( msg );
+			if ( stage ) {
+				setActiveStage( stage );
 			}
-			setStatus( msg, '' );
+
+			var logMsg = msg;
+			if ( data.track ) {
+				logMsg += ' — ' + data.track;
+			}
+			setStatus( logMsg, '' );
+			appendLog( logMsg );
 		} else if ( event === 'warning' ) {
-			setStatus( 'Warning: ' + data.message, 'warning' );
+			setStatus( 'Warning: ' + data.message, '' );
+			appendLog( '⚠ ' + data.message );
 		} else if ( event === 'complete' ) {
 			setProgress( 100 );
+			setActiveStage( 'complete' );
 			setStatus( 'Album pinned to IPFS!', 'success' );
+			appendLog( 'CID: ' + ( data.cid || 'unknown' ) );
 			saveResultToPage( data );
 		} else if ( event === 'error' ) {
+			setStageError();
 			showFinalizeError( 'Error: ' + ( data.message || 'Unknown error' ) );
+			appendLog( 'ERROR: ' + ( data.message || 'Unknown error' ) );
 			var finalizeBtn = el( 'rd-finalize-btn' );
 			var saveBtn = el( 'rd-save-btn' );
 			if ( finalizeBtn ) {
@@ -459,11 +477,63 @@
 		}
 	}
 
+	function detectStage( msg ) {
+		var lower = msg.toLowerCase();
+		if ( /transcod/.test( lower ) ) {
+			return 'transcoding';
+		}
+		if ( /tag/.test( lower ) || /vorbis/.test( lower ) || /metadata/.test( lower ) ) {
+			return 'tagging';
+		}
+		if ( /pin/.test( lower ) || /upload/.test( lower ) || /ipfs/.test( lower ) ) {
+			return 'pinning';
+		}
+		if ( /prepar/.test( lower ) || /start/.test( lower ) || /validat/.test( lower ) ) {
+			return 'preparing';
+		}
+		return null;
+	}
+
+	function setActiveStage( stageName ) {
+		var stages = document.querySelectorAll( '.rd-stage' );
+		var reached = false;
+		var passed = false;
+		stages.forEach( function ( stageEl ) {
+			var key = stageEl.dataset.stage;
+			stageEl.classList.remove( 'rd-stage-active', 'rd-stage-done', 'rd-stage-error' );
+			if ( key === stageName ) {
+				stageEl.classList.add( 'rd-stage-active' );
+				reached = true;
+			} else if ( !reached ) {
+				stageEl.classList.add( 'rd-stage-done' );
+			}
+		} );
+	}
+
+	function setStageError() {
+		var active = document.querySelector( '.rd-stage.rd-stage-active' );
+		if ( active ) {
+			active.classList.remove( 'rd-stage-active' );
+			active.classList.add( 'rd-stage-error' );
+		}
+	}
+
 	function setProgress( pct ) {
 		var fill = document.querySelector( '#rd-progress-bar .uc-progress-fill' );
 		if ( fill ) {
 			fill.style.width = pct + '%';
 		}
+	}
+
+	function appendLog( msg ) {
+		var log = el( 'rd-progress-log' );
+		if ( !log ) {
+			return;
+		}
+		var line = document.createElement( 'div' );
+		line.textContent = msg;
+		log.appendChild( line );
+		log.scrollTop = log.scrollHeight;
 	}
 
 	function saveResultToPage( resultData ) {

@@ -389,14 +389,32 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 
 		$html .= Html::openElement( 'div', [
 			'id' => 'rd-finalize-progress',
-			'class' => 'uc-step',
+			'class' => 'rd-finalize-progress',
 			'style' => 'display:none',
 		] );
+
+		// Stage indicators
+		$html .= Html::openElement( 'div', [ 'class' => 'rd-stages', 'id' => 'rd-stages' ] );
+		$stages = [ 'preparing' => 'Preparing', 'transcoding' => 'Transcoding', 'tagging' => 'Tagging', 'pinning' => 'Pinning', 'complete' => 'Complete' ];
+		foreach ( $stages as $key => $label ) {
+			$html .= Html::element( 'span', [
+				'class' => 'rd-stage',
+				'data-stage' => $key,
+			], $label );
+		}
+		$html .= Html::closeElement( 'div' );
+
+		// Progress bar
 		$html .= Html::rawElement( 'div', [
 			'id' => 'rd-progress-bar',
 			'class' => 'uc-progress-bar',
 		], Html::element( 'div', [ 'class' => 'uc-progress-fill' ] ) );
-		$html .= Html::element( 'div', [ 'id' => 'rd-progress-status', 'class' => 'uc-status' ] );
+
+		// Current activity log
+		$html .= Html::element( 'div', [ 'id' => 'rd-progress-status', 'class' => 'rd-progress-status' ] );
+		$html .= Html::openElement( 'div', [ 'id' => 'rd-progress-log', 'class' => 'rd-progress-log' ] );
+		$html .= Html::closeElement( 'div' );
+
 		$html .= Html::closeElement( 'div' );
 
 		$html .= Html::closeElement( 'div' );

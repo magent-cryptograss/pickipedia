@@ -169,6 +169,85 @@
 	color: #fff;
 }
 
+/* Finalize progress */
+.rd-finalize-progress {
+	margin-top: 1em;
+	padding: 1em;
+	background: #f8f9fa;
+	border: 1px solid #c8ccd1;
+	border-radius: 4px;
+}
+
+.rd-stages {
+	display: flex;
+	gap: 0;
+	margin-bottom: 1em;
+}
+
+.rd-stage {
+	flex: 1;
+	text-align: center;
+	padding: 0.5em 0.25em;
+	font-size: 0.85em;
+	color: #72777d;
+	background: #eaecf0;
+	border-right: 1px solid #c8ccd1;
+	position: relative;
+}
+
+.rd-stage:first-child {
+	border-radius: 3px 0 0 3px;
+}
+
+.rd-stage:last-child {
+	border-radius: 0 3px 3px 0;
+	border-right: none;
+}
+
+.rd-stage.rd-stage-active {
+	background: #36c;
+	color: #fff;
+	font-weight: bold;
+}
+
+.rd-stage.rd-stage-done {
+	background: #14866d;
+	color: #fff;
+}
+
+.rd-stage.rd-stage-error {
+	background: #d33;
+	color: #fff;
+}
+
+.rd-progress-status {
+	margin: 0.75em 0 0.25em;
+	font-size: 0.95em;
+	font-weight: bold;
+}
+
+.rd-progress-status.rd-status-error {
+	color: #d33;
+}
+
+.rd-progress-status.rd-status-success {
+	color: #14866d;
+}
+
+.rd-progress-log {
+	font-size: 0.85em;
+	color: #54595d;
+	max-height: 8em;
+	overflow-y: auto;
+	font-family: monospace;
+	line-height: 1.6;
+}
+
+.rd-progress-log div {
+	padding: 0.1em 0;
+	border-bottom: 1px solid #eaecf0;
+}
+
 /* Album form */
 .rd-album-form {
 	margin-bottom: 1em;

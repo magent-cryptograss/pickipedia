@@ -175,6 +175,11 @@ YAML;
 			] );
 		}
 
+		// Title from YAML
+		if ( !empty( $data['title'] ) ) {
+			$html .= Html::element( 'h2', [ 'class' => 'release-title' ], $data['title'] );
+		}
+
 		$html .= Html::openElement( 'table', [ 'class' => 'release-metadata wikitable' ] );
 
 		// CID from page title (primary identifier)
