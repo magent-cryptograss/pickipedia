@@ -395,7 +395,7 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 
 		// Stage indicators
 		$html .= Html::openElement( 'div', [ 'class' => 'rd-stages', 'id' => 'rd-stages' ] );
-		$stages = [ 'preparing' => 'Preparing', 'transcoding' => 'Transcoding', 'tagging' => 'Tagging', 'pinning' => 'Pinning', 'complete' => 'Complete' ];
+		$stages = [ 'preparing' => 'Preparing', 'transcoding' => 'Transcoding', 'tagging' => 'Tagging', 'pinning' => 'Pinning', 'torrenting' => 'Torrenting', 'complete' => 'Complete' ];
 		foreach ( $stages as $key => $label ) {
 			$html .= Html::element( 'span', [
 				'class' => 'rd-stage',

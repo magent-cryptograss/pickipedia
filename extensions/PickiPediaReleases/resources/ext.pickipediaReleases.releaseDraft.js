@@ -485,6 +485,9 @@
 		if ( /tag/.test( lower ) || /vorbis/.test( lower ) || /metadata/.test( lower ) ) {
 			return 'tagging';
 		}
+		if ( /torrent|infohash|magnet/.test( lower ) ) {
+			return 'torrenting';
+		}
 		if ( /pin/.test( lower ) || /upload/.test( lower ) || /ipfs/.test( lower ) ) {
 			return 'pinning';
 		}
@@ -592,6 +595,17 @@
 
 		lines.push( 'pinned_on:' );
 		lines.push( '  - delivery-kid' );
+
+		// BitTorrent fields from finalize result
+		if ( resultData.bittorrent_infohash ) {
+			lines.push( 'bittorrent_infohash: ' + resultData.bittorrent_infohash );
+		}
+		if ( resultData.bittorrent_trackers && resultData.bittorrent_trackers.length ) {
+			lines.push( 'bittorrent_trackers:' );
+			resultData.bittorrent_trackers.forEach( function ( tracker ) {
+				lines.push( '  - ' + tracker );
+			} );
+		}
 
 		var releaseYaml = lines.join( '\n' ) + '\n';
 
