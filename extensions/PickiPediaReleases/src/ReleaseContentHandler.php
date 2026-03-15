@@ -218,7 +218,8 @@ YAML;
 					$data['bittorrent_infohash'],
 					$data['title'] ?? $cid,
 					$data['bittorrent_trackers'] ?? [],
-					$data['bittorrent_webseeds'] ?? []
+					$data['bittorrent_webseeds'] ?? [],
+					$data['bittorrent_torrent_url'] ?? null
 				)
 			);
 			$html .= Html::closeElement( 'tr' );
@@ -380,7 +381,7 @@ YAML;
 	 * @param string|null $cid IPFS CID for webseed URL
 	 * @return string
 	 */
-	private function renderTorrentLink( string $infohash, string $name, array $trackers = [], array $webseeds = [] ): string {
+	private function renderTorrentLink( string $infohash, string $name, array $trackers = [], array $webseeds = [], ?string $torrentUrl = null ): string {
 		$magnetUri = "magnet:?xt=urn:btih:{$infohash}";
 		if ( $name ) {
 			$magnetUri .= "&dn=" . urlencode( $name );
@@ -392,9 +393,13 @@ YAML;
 			$magnetUri .= "&ws=" . urlencode( $webseed );
 		}
 
+		$links = Html::element( 'a', [ 'href' => $magnetUri ], '[magnet]' );
+		if ( $torrentUrl ) {
+			$links .= ' ' . Html::element( 'a', [ 'href' => $torrentUrl ], '[.torrent]' );
+		}
+
 		return Html::rawElement( 'span', [ 'class' => 'release-torrent-link' ],
-			Html::element( 'code', [], $infohash ) . ' ' .
-			Html::element( 'a', [ 'href' => $magnetUri ], '[magnet]' )
+			Html::element( 'code', [], $infohash ) . ' ' . $links
 		);
 	}
 
