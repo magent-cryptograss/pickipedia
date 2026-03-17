@@ -199,7 +199,7 @@
 			};
 		} );
 
-		var yaml = buildYaml( draftId, tracks );
+		var yaml = buildAlbumYaml( draftId, draft.commit || 'unknown', tracks );
 
 		var api = new mw.Api();
 		api.postWithEditToken( {
@@ -223,11 +223,13 @@
 		} );
 	}
 
-	function buildYaml( draftId, tracks ) {
+	function buildAlbumYaml( draftId, commit, tracks ) {
 		var lines = [];
 		lines.push( 'draft_id: ' + draftId );
 		lines.push( 'type: album' );
-		lines.push( 'status: draft' );
+		lines.push( 'source: special-upload-album' );
+		lines.push( 'commit: ' + commit );
+		lines.push( 'uploader: ' + quote( mw.config.get( 'wgUploadUser' ) || '' ) );
 		lines.push( 'blockheight: null' );
 		lines.push( 'album:' );
 		lines.push( '    title: ""' );
@@ -251,10 +253,6 @@
 			}
 			lines.push( '        metadata: ""' );
 		} );
-
-		lines.push( 'result:' );
-		lines.push( '    cid: null' );
-		lines.push( '    gateway_url: null' );
 
 		return lines.join( '\n' ) + '\n';
 	}

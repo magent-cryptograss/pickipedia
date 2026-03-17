@@ -4,11 +4,15 @@
  *
  * Stores structured data about a draft release:
  * - delivery-kid draft ID (referencing files on storage)
- * - type (album, content, etc.)
- * - status (draft, finalizing, complete)
+ * - type (album, content, blue-railroad, etc.)
+ * - source (which Special page or bot created this)
+ * - commit hash (maybelle-config build that processed the upload)
  * - blockheight for temporal reference
- * - type-specific metadata (album info, tracks, etc.)
- * - result data after finalization (CID, gateway URL)
+ * - uploader identity
+ * - type-specific metadata (album info, tracks, content info, files)
+ *
+ * Status is NOT stored here — it's derived from context (existence of
+ * a corresponding Release page, active Coconut jobs, etc.)
  *
  * @file
  * @ingroup Extensions
@@ -69,8 +73,16 @@ class ReleaseDraftContent extends TextContent {
 		return $this->getData()['type'] ?? 'album';
 	}
 
-	public function getStatus(): string {
-		return $this->getData()['status'] ?? 'draft';
+	public function getSource(): string {
+		return $this->getData()['source'] ?? '';
+	}
+
+	public function getCommit(): string {
+		return $this->getData()['commit'] ?? '';
+	}
+
+	public function getUploader(): string {
+		return $this->getData()['uploader'] ?? '';
 	}
 
 	public function getBlockheight(): ?int {
@@ -86,8 +98,12 @@ class ReleaseDraftContent extends TextContent {
 		return $this->getData()['tracks'] ?? [];
 	}
 
-	public function getResult(): array {
-		return $this->getData()['result'] ?? [];
+	public function getContentData(): array {
+		return $this->getData()['content'] ?? [];
+	}
+
+	public function getFiles(): array {
+		return $this->getData()['files'] ?? [];
 	}
 
 	public function getAlbumTitle(): ?string {
@@ -96,6 +112,10 @@ class ReleaseDraftContent extends TextContent {
 
 	public function getArtist(): ?string {
 		return $this->getAlbumData()['artist'] ?? null;
+	}
+
+	public function getContentTitle(): ?string {
+		return $this->getContentData()['title'] ?? null;
 	}
 
 	// -- AbstractContent methods --
@@ -128,32 +148,50 @@ class ReleaseDraftContent extends TextContent {
 
 	public function getTextForSearchIndex(): string {
 		$parts = [];
-		$album = $this->getAlbumData();
-		if ( !empty( $album['title'] ) ) {
-			$parts[] = $album['title'];
-		}
-		if ( !empty( $album['artist'] ) ) {
-			$parts[] = $album['artist'];
-		}
-		if ( !empty( $album['description'] ) ) {
-			$parts[] = $album['description'];
-		}
-		foreach ( $this->getTracks() as $track ) {
-			if ( !empty( $track['title'] ) ) {
-				$parts[] = $track['title'];
+
+		if ( $this->getDraftType() === 'album' ) {
+			$album = $this->getAlbumData();
+			if ( !empty( $album['title'] ) ) {
+				$parts[] = $album['title'];
+			}
+			if ( !empty( $album['artist'] ) ) {
+				$parts[] = $album['artist'];
+			}
+			if ( !empty( $album['description'] ) ) {
+				$parts[] = $album['description'];
+			}
+			foreach ( $this->getTracks() as $track ) {
+				if ( !empty( $track['title'] ) ) {
+					$parts[] = $track['title'];
+				}
+			}
+		} else {
+			$content = $this->getContentData();
+			if ( !empty( $content['title'] ) ) {
+				$parts[] = $content['title'];
+			}
+			if ( !empty( $content['description'] ) ) {
+				$parts[] = $content['description'];
 			}
 		}
+
 		return implode( "\n", $parts );
 	}
 
 	public function getTextForSummary( $maxLength = 250 ) {
-		$album = $this->getAlbumData();
-		$summary = '';
-		if ( !empty( $album['artist'] ) && !empty( $album['title'] ) ) {
-			$summary = $album['artist'] . ' — ' . $album['title'];
-		} elseif ( !empty( $album['title'] ) ) {
-			$summary = $album['title'];
+		if ( $this->getDraftType() === 'album' ) {
+			$album = $this->getAlbumData();
+			$summary = '';
+			if ( !empty( $album['artist'] ) && !empty( $album['title'] ) ) {
+				$summary = $album['artist'] . ' — ' . $album['title'];
+			} elseif ( !empty( $album['title'] ) ) {
+				$summary = $album['title'];
+			}
+		} else {
+			$content = $this->getContentData();
+			$summary = $content['title'] ?? '';
 		}
+
 		return $summary ? mb_substr( $summary, 0, $maxLength ) : mb_substr( $this->getText(), 0, $maxLength );
 	}
 

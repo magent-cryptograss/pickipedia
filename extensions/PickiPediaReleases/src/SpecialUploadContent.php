@@ -9,7 +9,8 @@
  * 1. User logs in to wiki (must have 'upload-to-delivery-kid' right)
  * 2. PHP generates HMAC upload token from shared API key
  * 3. JS uploads directly to delivery-kid with the token
- * 4. JS handles the review/finalize steps
+ * 4. JS creates a ReleaseDraft wiki page and redirects there
+ * 5. Review, metadata, and finalization happen on the ReleaseDraft page
  *
  * @file
  * @ingroup Extensions
@@ -60,15 +61,16 @@ class SpecialUploadContent extends SpecialPage {
 	}
 
 	/**
-	 * Render the HTML skeleton. JS handles all interactivity.
+	 * Render the HTML skeleton — just a dropzone.
+	 * After upload, JS creates a ReleaseDraft page and redirects.
 	 */
 	private function renderPageStructure(): string {
 		$html = '';
 
-		// Step 1: File upload
 		$html .= '<div id="uc-step-upload" class="uc-step uc-step-active">';
 		$html .= '<h3>Upload Files</h3>';
-		$html .= '<p>Select files to upload for review before pinning to IPFS.</p>';
+		$html .= '<p>Select files to upload. After analysis, a draft page will be created for review and metadata editing.</p>';
+		$html .= '<p class="uc-hint">Video files will be transcoded to AV1 HLS (royalty-free) automatically on finalization.</p>';
 		$html .= '<div id="uc-dropzone" class="uc-dropzone">';
 		$html .= '<p>Drag files here or click to select</p>';
 		$html .= '<p class="uc-hint">Audio, Video, Images &mdash; no size limit</p>';
@@ -78,36 +80,6 @@ class SpecialUploadContent extends SpecialPage {
 		$html .= '<button id="uc-upload-btn" class="cdx-button cdx-button--action-progressive cdx-button--weight-primary" disabled>Upload &amp; Analyze</button>';
 		$html .= '<div id="uc-upload-progress" class="uc-progress-bar" style="display:none"><div class="uc-progress-fill"></div></div>';
 		$html .= '<div id="uc-upload-status" class="uc-status"></div>';
-		$html .= '</div>';
-
-		// Step 2: Review and metadata
-		$html .= '<div id="uc-step-review" class="uc-step">';
-		$html .= '<h3>Review &amp; Metadata</h3>';
-		$html .= '<div id="uc-draft-info" class="uc-draft-info"></div>';
-		$html .= '<div class="uc-metadata-form">';
-		$html .= '<div class="uc-field"><label for="uc-title">Title</label>';
-		$html .= '<input type="text" id="uc-title" class="cdx-text-input__input" placeholder="Content title"></div>';
-		$html .= '<div class="uc-field"><label for="uc-description">Description</label>';
-		$html .= '<textarea id="uc-description" class="cdx-text-input__input" rows="3" placeholder="Optional description"></textarea></div>';
-		$html .= '<div class="uc-field"><label for="uc-file-type">File type override</label>';
-		$html .= '<input type="text" id="uc-file-type" class="cdx-text-input__input" placeholder="e.g., video/webm (leave blank for auto)"></div>';
-		$html .= '<div class="uc-field"><label for="uc-subsequent-to">Subsequent to (CID)</label>';
-		$html .= '<input type="text" id="uc-subsequent-to" class="cdx-text-input__input" placeholder="CID this content supersedes"></div>';
-		$html .= '<div class="uc-field uc-checkbox-field" id="uc-hls-field" style="display:none">';
-		$html .= '<label><input type="checkbox" id="uc-transcode-hls"> Transcode video to HLS before pinning</label></div>';
-		$html .= '</div>';
-		$html .= '<div class="uc-button-row">';
-		$html .= '<button id="uc-finalize-btn" class="cdx-button cdx-button--action-progressive cdx-button--weight-primary">Finalize &amp; Pin</button>';
-		$html .= '<button id="uc-delete-draft-btn" class="cdx-button cdx-button--action-destructive">Delete Draft</button>';
-		$html .= '</div>';
-		$html .= '</div>';
-
-		// Step 3: Progress and result
-		$html .= '<div id="uc-step-progress" class="uc-step">';
-		$html .= '<h3>Pinning</h3>';
-		$html .= '<div id="uc-progress-bar" class="uc-progress-bar"><div class="uc-progress-fill"></div></div>';
-		$html .= '<div id="uc-progress-status" class="uc-status"></div>';
-		$html .= '<div id="uc-result" class="uc-result"></div>';
 		$html .= '</div>';
 
 		return $html;

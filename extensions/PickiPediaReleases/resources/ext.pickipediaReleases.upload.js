@@ -1,8 +1,10 @@
 /**
  * Upload Content — direct upload to delivery-kid from browser.
  *
- * Wiki generates an HMAC token. JS uploads directly to delivery-kid.
- * No bytes pass through PHP.
+ * After upload+analysis, creates a ReleaseDraft wiki page and redirects there.
+ * The ReleaseDraft namespace handles review, metadata editing, and finalization.
+ *
+ * Same pattern as uploadAlbum.js, but creates type=content drafts.
  */
 ( function () {
 	'use strict';
@@ -13,8 +15,6 @@
 		'X-Upload-User': mw.config.get( 'wgUploadUser' ),
 		'X-Upload-Timestamp': String( mw.config.get( 'wgUploadTimestamp' ) )
 	};
-
-	var currentDraftId = null;
 
 	// -- Helpers --
 
@@ -28,13 +28,6 @@
 		e.className = 'uc-status' + ( type ? ' uc-status-' + type : '' );
 	}
 
-	function showStep( stepId ) {
-		document.querySelectorAll( '.uc-step' ).forEach( function ( s ) {
-			s.classList.remove( 'uc-step-active' );
-		} );
-		el( stepId ).classList.add( 'uc-step-active' );
-	}
-
 	function formatSize( bytes ) {
 		var units = [ 'B', 'KB', 'MB', 'GB' ];
 		var size = bytes;
@@ -46,16 +39,18 @@
 		return size.toFixed( 1 ) + ' ' + units[ i ];
 	}
 
-	function formatDuration( seconds ) {
-		if ( !seconds ) {
-			return '';
+	function quote( val ) {
+		if ( val === '' || val === null || val === undefined ) {
+			return '""';
 		}
-		var m = Math.floor( seconds / 60 );
-		var s = Math.floor( seconds % 60 );
-		return m + ':' + ( s < 10 ? '0' : '' ) + s;
+		val = String( val );
+		if ( /[:#\[\]{}&*!|>'"%@`\n]/.test( val ) || val.trim() !== val ) {
+			return '"' + val.replace( /\\/g, '\\\\' ).replace( /"/g, '\\"' ).replace( /\n/g, '\\n' ) + '"';
+		}
+		return val;
 	}
 
-	// -- Step 1: File Upload --
+	// -- File Upload --
 
 	function initUploadStep() {
 		var dropzone = el( 'uc-dropzone' );
@@ -184,13 +179,10 @@
 			}
 
 			var draft = JSON.parse( xhr.responseText );
-			currentDraftId = draft.draft_id;
-
 			setStatus( 'uc-upload-status',
-				'Draft created: ' + currentDraftId.slice( 0, 8 ) + '...', 'success' );
+				'Draft created. ' + draft.files.length + ' file(s) analyzed. Creating draft page...', 'success' );
 
-			renderReview( draft );
-			showStep( 'uc-step-review' );
+			createReleaseDraftPage( draft );
 		} );
 
 		xhr.addEventListener( 'error', function () {
@@ -202,204 +194,75 @@
 		xhr.send( formData );
 	}
 
-	// -- Step 2: Review & Metadata --
+	// -- Create ReleaseDraft wiki page and redirect --
 
-	function renderReview( draft ) {
-		var info = el( 'uc-draft-info' );
-		var html = '<table class="wikitable">';
-		html += '<tr><th>File</th><th>Type</th><th>Format</th><th>Duration</th><th>Size</th></tr>';
+	function createReleaseDraftPage( draft ) {
+		var draftId = draft.draft_id;
+		var pageName = 'ReleaseDraft:' + draftId;
 
-		var hasVideo = false;
-		draft.files.forEach( function ( f ) {
-			html += '<tr>';
-			html += '<td>' + mw.html.escape( f.original_filename ) + '</td>';
-			html += '<td>' + mw.html.escape( f.media_type ) + '</td>';
-			html += '<td>' + mw.html.escape( f.format ) + '</td>';
-			html += '<td>' + formatDuration( f.duration_seconds ) + '</td>';
-			html += '<td>' + formatSize( f.size_bytes ) + '</td>';
-			html += '</tr>';
+		var yaml = buildContentYaml( draftId, draft );
 
-			if ( f.width && f.height ) {
-				html += '<tr><td></td><td colspan="4">' + f.width + 'x' + f.height;
-				if ( f.video_codec ) {
-					html += ' &middot; ' + mw.html.escape( f.video_codec );
-				}
-				if ( f.audio_codec ) {
-					html += ' &middot; ' + mw.html.escape( f.audio_codec );
-				}
-				html += '</td></tr>';
-			}
-
-			if ( f.media_type === 'video' ) {
-				hasVideo = true;
+		var api = new mw.Api();
+		api.postWithEditToken( {
+			action: 'edit',
+			title: pageName,
+			text: yaml,
+			summary: 'New content draft: ' + draft.files.length + ' file(s) uploaded',
+			createonly: true
+		} ).then( function () {
+			window.location.href = mw.util.getUrl( pageName );
+		} ).fail( function ( code, result ) {
+			if ( code === 'articleexists' ) {
+				window.location.href = mw.util.getUrl( pageName );
+			} else {
+				setStatus( 'uc-upload-status',
+					'Failed to create draft page: ' + ( result.error ? result.error.info : code ), 'error' );
+				el( 'uc-upload-btn' ).disabled = false;
 			}
 		} );
-
-		html += '</table>';
-		html += '<p class="uc-draft-expires">Draft expires: ' +
-			new Date( draft.expires_at ).toLocaleString() + '</p>';
-		info.innerHTML = html;
-
-		// Pre-fill title
-		if ( draft.files.length === 1 && draft.files[ 0 ].detected_title ) {
-			el( 'uc-title' ).value = draft.files[ 0 ].detected_title;
-		}
-
-		el( 'uc-hls-field' ).style.display = hasVideo ? '' : 'none';
 	}
 
-	function initReviewStep() {
-		el( 'uc-finalize-btn' ).addEventListener( 'click', function () {
-			startFinalization();
-		} );
+	function buildContentYaml( draftId, draft ) {
+		var lines = [];
+		lines.push( 'draft_id: ' + draftId );
+		lines.push( 'type: content' );
+		lines.push( 'source: special-upload-content' );
+		lines.push( 'commit: ' + ( draft.commit || 'unknown' ) );
+		lines.push( 'uploader: ' + quote( mw.config.get( 'wgUploadUser' ) || '' ) );
+		lines.push( 'blockheight: null' );
+		lines.push( 'content:' );
+		lines.push( '    title: ""' );
+		lines.push( '    description: ""' );
+		lines.push( '    file_type: ""' );
+		lines.push( '    subsequent_to: ""' );
+		lines.push( 'files:' );
 
-		el( 'uc-delete-draft-btn' ).addEventListener( 'click', function () {
-			if ( !currentDraftId || !confirm( 'Delete this draft? This cannot be undone.' ) ) {
-				return;
+		( draft.files || [] ).forEach( function ( f ) {
+			lines.push( '    -' );
+			lines.push( '        original_filename: ' + quote( f.original_filename ) );
+			lines.push( '        media_type: ' + quote( f.media_type || '' ) );
+			lines.push( '        format: ' + quote( f.format || '' ) );
+			if ( f.duration_seconds ) {
+				lines.push( '        duration_seconds: ' + f.duration_seconds );
 			}
-			fetch( API_URL + '/draft-content/' + currentDraftId, {
-				method: 'DELETE',
-				headers: AUTH_HEADERS
-			} ).then( function () {
-				currentDraftId = null;
-				showStep( 'uc-step-upload' );
-				setStatus( 'uc-upload-status', 'Draft deleted.', '' );
-			} );
-		} );
-	}
-
-	// -- Step 3: Finalize --
-
-	function startFinalization() {
-		if ( !currentDraftId ) {
-			return;
-		}
-
-		showStep( 'uc-step-progress' );
-		setProgress( 0 );
-		setStatus( 'uc-progress-status', 'Starting finalization...', '' );
-
-		var headers = Object.assign( {}, AUTH_HEADERS, {
-			'Content-Type': 'application/json'
-		} );
-
-		var body = JSON.stringify( {
-			title: el( 'uc-title' ).value || null,
-			description: el( 'uc-description' ).value || null,
-			file_type: el( 'uc-file-type' ).value || null,
-			subsequent_to: el( 'uc-subsequent-to' ).value || null,
-			transcode_hls: el( 'uc-transcode-hls' ).checked,
-			metadata: {}
-		} );
-
-		fetch( API_URL + '/draft-content/' + currentDraftId + '/finalize', {
-			method: 'POST',
-			headers: headers,
-			body: body
-		} ).then( function ( resp ) {
-			if ( !resp.ok ) {
-				return resp.json().then( function ( err ) {
-					throw new Error( err.detail || resp.statusText );
-				} );
+			if ( f.width ) {
+				lines.push( '        width: ' + f.width );
 			}
-			return readSSEStream( resp );
-		} ).catch( function ( err ) {
-			setStatus( 'uc-progress-status', 'Error: ' + err.message, 'error' );
+			if ( f.height ) {
+				lines.push( '        height: ' + f.height );
+			}
+			if ( f.video_codec ) {
+				lines.push( '        video_codec: ' + quote( f.video_codec ) );
+			}
+			if ( f.audio_codec ) {
+				lines.push( '        audio_codec: ' + quote( f.audio_codec ) );
+			}
+			if ( f.size_bytes ) {
+				lines.push( '        size_bytes: ' + f.size_bytes );
+			}
 		} );
-	}
 
-	function readSSEStream( resp ) {
-		var reader = resp.body.getReader();
-		var decoder = new TextDecoder();
-		var buffer = '';
-
-		function pump() {
-			return reader.read().then( function ( result ) {
-				if ( result.done ) {
-					return;
-				}
-
-				buffer += decoder.decode( result.value, { stream: true } );
-				var lines = buffer.split( '\n' );
-				buffer = lines.pop();
-
-				var currentEvent = '';
-				for ( var i = 0; i < lines.length; i++ ) {
-					var line = lines[ i ].trim();
-					if ( line.indexOf( 'event:' ) === 0 ) {
-						currentEvent = line.slice( 6 ).trim();
-					} else if ( line.indexOf( 'data:' ) === 0 ) {
-						var data = line.slice( 5 ).trim();
-						try {
-							handleSSEEvent( currentEvent, JSON.parse( data ) );
-						} catch ( e ) {
-							// skip malformed
-						}
-					}
-				}
-
-				return pump();
-			} );
-		}
-
-		return pump();
-	}
-
-	function handleSSEEvent( event, data ) {
-		if ( event === 'progress' ) {
-			setProgress( data.progress || 0 );
-			setStatus( 'uc-progress-status', data.message || '', '' );
-		} else if ( event === 'complete' ) {
-			setProgress( 100 );
-			setStatus( 'uc-progress-status', 'Pinning complete!', 'success' );
-			renderResult( data );
-			currentDraftId = null;
-		} else if ( event === 'error' ) {
-			setStatus( 'uc-progress-status',
-				'Error: ' + ( data.message || 'Unknown error' ), 'error' );
-		}
-	}
-
-	function setProgress( pct ) {
-		var fill = document.querySelector( '#uc-progress-bar .uc-progress-fill' );
-		if ( fill ) {
-			fill.style.width = pct + '%';
-		}
-	}
-
-	function renderResult( data ) {
-		var resultEl = el( 'uc-result' );
-		var releaseUrl = mw.util.getUrl( 'Release:' + data.cid );
-
-		var html = '<div class="uc-result-card">';
-		html += '<h4>Content Pinned Successfully</h4>';
-		html += '<table class="wikitable">';
-		if ( data.title ) {
-			html += '<tr><th>Title</th><td>' + mw.html.escape( data.title ) + '</td></tr>';
-		}
-		html += '<tr><th>CID</th><td class="release-cid-cell">' +
-			mw.html.escape( data.cid ) + '</td></tr>';
-		if ( data.gateway_url ) {
-			html += '<tr><th>Gateway</th><td><a href="' + mw.html.escape( data.gateway_url ) +
-				'" target="_blank">' + mw.html.escape( data.gateway_url ) + '</a></td></tr>';
-		}
-		html += '<tr><th>Pinata</th><td>' + ( data.pinata ? 'Yes' : 'No' ) + '</td></tr>';
-		if ( data.subsequent_to ) {
-			html += '<tr><th>Supersedes</th><td>' +
-				mw.html.escape( data.subsequent_to ) + '</td></tr>';
-		}
-		html += '</table>';
-		html += '<p><a href="' + mw.html.escape( releaseUrl ) +
-			'" class="cdx-button cdx-button--action-progressive">View Release Page</a></p>';
-		html += '<button id="uc-start-over" class="cdx-button">Upload More Content</button>';
-		html += '</div>';
-
-		resultEl.innerHTML = html;
-
-		el( 'uc-start-over' ).addEventListener( 'click', function () {
-			resultEl.innerHTML = '';
-			showStep( 'uc-step-upload' );
-		} );
+		return lines.join( '\n' ) + '\n';
 	}
 
 	// -- Init --
@@ -412,9 +275,8 @@
 		}
 
 		initUploadStep();
-		initReviewStep();
 	}
 
-	mw.loader.using( 'mediawiki.util' ).then( init );
+	mw.loader.using( [ 'mediawiki.util', 'mediawiki.api' ] ).then( init );
 
 }() );
