@@ -304,6 +304,20 @@
 	white-space: nowrap;
 }
 
+.dv-col-details .rd-date-converter {
+	margin-top: 0.3em;
+}
+
+.dv-col-details .rd-date-converter label {
+	font-size: 0.85em;
+	color: #72777d;
+	margin-right: 0.4em;
+}
+
+.dv-col-details .rd-date-input {
+	width: 140px;
+}
+
 .uc-required {
 	font-weight: normal;
 	color: #72777d;

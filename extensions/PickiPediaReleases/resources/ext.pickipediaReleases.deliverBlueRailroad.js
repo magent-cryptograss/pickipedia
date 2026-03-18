@@ -101,6 +101,20 @@
 			bhInput.value = block;
 			updateBlockDateLabel( block, dateLabel );
 		} );
+
+		// Date picker → block height conversion
+		var dateInput = el( 'dv-date-input' );
+		if ( dateInput ) {
+			dateInput.addEventListener( 'change', function () {
+				if ( dateInput.value ) {
+					var parts = dateInput.value.split( '-' );
+					var ts = Math.floor( new Date( parts[ 0 ], parts[ 1 ] - 1, parts[ 2 ], 12, 0, 0 ).getTime() / 1000 );
+					var block = timestampToBlock( ts );
+					bhInput.value = block;
+					updateBlockDateLabel( block, dateLabel );
+				}
+			} );
+		}
 	}
 
 	// -- File Upload --

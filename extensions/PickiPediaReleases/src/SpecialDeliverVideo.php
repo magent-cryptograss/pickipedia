@@ -157,6 +157,14 @@ class SpecialDeliverVideo extends SpecialPage {
 		], 'Now' );
 		$html .= Html::element( 'span', [ 'id' => 'dv-blockheight-date', 'class' => 'rd-blockheight-date' ], '' );
 		$html .= '</div>';
+		$html .= '<div class="rd-date-converter">';
+		$html .= Html::element( 'label', [ 'for' => 'dv-date-input' ], 'Or pick a date:' );
+		$html .= Html::element( 'input', [
+			'type' => 'date',
+			'id' => 'dv-date-input',
+			'class' => 'cdx-text-input__input rd-date-input',
+		] );
+		$html .= '</div>';
 		$html .= '</div>';
 
 		// Description
