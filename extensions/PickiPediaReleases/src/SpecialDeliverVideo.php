@@ -79,11 +79,14 @@ class SpecialDeliverVideo extends SpecialPage {
 		$html = '';
 
 		$html .= '<div id="dv-step-upload" class="uc-step uc-step-active">';
-		$html .= '<h3>Upload Video</h3>';
-		$html .= '<p>Upload a video file. After analysis, a draft page will be created for review and metadata editing.</p>';
-		$html .= '<p class="uc-hint">Video will be transcoded to AV1 HLS (royalty-free) automatically on finalization.</p>';
 
-		// Video dropzone
+		// Two-column layout: upload on left, optional details on right
+		$html .= '<div class="dv-columns">';
+
+		// -- Left column: dropzone, title, upload --
+		$html .= '<div class="dv-col-main">';
+		$html .= '<h3>Upload Video</h3>';
+
 		$html .= '<div id="dv-dropzone" class="uc-dropzone">';
 		$html .= '<p>Drag video file here or click to select</p>';
 		$html .= '<p class="uc-hint">MP4, MKV, WebM, MOV, AVI &mdash; no size limit</p>';
@@ -91,10 +94,9 @@ class SpecialDeliverVideo extends SpecialPage {
 		$html .= '</div>';
 		$html .= '<div id="dv-file-list" class="uc-file-list"></div>';
 
-		// Required: Title
-		$html .= '<h3>Title <span class="uc-required">(required)</span></h3>';
-		$html .= '<div class="uc-metadata-form">';
+		// Title — required
 		$html .= '<div class="uc-field">';
+		$html .= Html::element( 'label', [ 'for' => 'dv-title' ], 'Title (required)' );
 		$html .= Html::element( 'input', [
 			'type' => 'text',
 			'id' => 'dv-title',
@@ -103,12 +105,18 @@ class SpecialDeliverVideo extends SpecialPage {
 			'required' => true,
 		] );
 		$html .= '</div>';
+
+		$html .= '<button id="dv-upload-btn" class="cdx-button cdx-button--action-progressive cdx-button--weight-primary" disabled>Upload</button>';
+		$html .= '<div id="dv-upload-progress" class="uc-progress-bar" style="display:none"><div class="uc-progress-fill"></div></div>';
+		$html .= '<div id="dv-upload-status" class="uc-status"></div>';
+		$html .= '<p class="uc-hint">Video will be transcoded to AV1 HLS on finalization.</p>';
+
 		$html .= '</div>';
 
-		// Optional metadata
-		$html .= '<h3>Optional Details</h3>';
-		$html .= '<p class="uc-hint">All of these can also be added or changed later on the draft page.</p>';
-		$html .= '<div class="uc-metadata-form">';
+		// -- Right column: optional details --
+		$html .= '<div class="dv-col-details">';
+		$html .= '<h4>Optional Details</h4>';
+		$html .= '<p class="uc-hint">Can be added later on the draft page.</p>';
 
 		// Venue
 		$html .= '<div class="uc-field">';
@@ -117,7 +125,7 @@ class SpecialDeliverVideo extends SpecialPage {
 			'type' => 'text',
 			'id' => 'dv-venue',
 			'class' => 'cdx-text-input__input',
-			'placeholder' => 'e.g. Station Inn, The Birchmere',
+			'placeholder' => 'e.g. Station Inn',
 		] );
 		$html .= '</div>';
 
@@ -128,13 +136,13 @@ class SpecialDeliverVideo extends SpecialPage {
 			'type' => 'text',
 			'id' => 'dv-performers',
 			'class' => 'cdx-text-input__input',
-			'placeholder' => 'Comma-separated names',
+			'placeholder' => 'Comma-separated',
 		] );
 		$html .= '</div>';
 
-		// Content blockheight — when the video was recorded
+		// Content blockheight
 		$html .= '<div class="uc-field">';
-		$html .= Html::element( 'label', [ 'for' => 'dv-content-blockheight' ], 'When was this recorded? (Ethereum block height)' );
+		$html .= Html::element( 'label', [ 'for' => 'dv-content-blockheight' ], 'When recorded (block height)' );
 		$html .= '<div class="rd-blockheight-row">';
 		$html .= Html::element( 'input', [
 			'type' => 'number',
@@ -146,7 +154,7 @@ class SpecialDeliverVideo extends SpecialPage {
 			'type' => 'button',
 			'id' => 'dv-blockheight-now',
 			'class' => 'cdx-button',
-		], 'Current Block' );
+		], 'Now' );
 		$html .= Html::element( 'span', [ 'id' => 'dv-blockheight-date', 'class' => 'rd-blockheight-date' ], '' );
 		$html .= '</div>';
 		$html .= '</div>';
@@ -158,18 +166,14 @@ class SpecialDeliverVideo extends SpecialPage {
 			'id' => 'dv-description',
 			'class' => 'cdx-text-input__input',
 			'rows' => 3,
-			'placeholder' => 'Optional description',
+			'placeholder' => 'Optional',
 		], '' );
 		$html .= '</div>';
 
-		$html .= '</div>';
+		$html .= '</div>'; // dv-col-details
+		$html .= '</div>'; // dv-columns
 
-		// Upload button
-		$html .= '<button id="dv-upload-btn" class="cdx-button cdx-button--action-progressive cdx-button--weight-primary" disabled>Upload &amp; Analyze</button>';
-		$html .= '<div id="dv-upload-progress" class="uc-progress-bar" style="display:none"><div class="uc-progress-fill"></div></div>';
-		$html .= '<div id="dv-upload-status" class="uc-status"></div>';
-
-		$html .= '</div>';
+		$html .= '</div>'; // dv-step-upload
 
 		return $html;
 	}
