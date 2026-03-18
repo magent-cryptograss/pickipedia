@@ -44,7 +44,7 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 	public function makeEmptyContent(): ReleaseDraftContent {
 		$yaml = Yaml::dump( [
 			'draft_id' => '',
-			'type' => 'album',
+			'type' => 'record',
 			'status' => 'draft',
 			'blockheight' => null,
 			'album' => [
@@ -87,8 +87,12 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 
 		$html = '';
 		$data = $content->getData();
-		$status = $content->getStatus();
 		$type = $content->getDraftType();
+
+		// Derive status from context: does a Release page reference this draft?
+		// For now, treat all ReleaseDraft pages as editable drafts.
+		// The JS can check for Release page existence client-side.
+		$status = 'draft';
 
 		// Validation errors
 		$validation = $content->validate();
@@ -99,13 +103,8 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		// Status banner
 		$html .= $this->renderStatusBanner( $status, $data );
 
-		// If complete, show the result
-		if ( $status === 'complete' ) {
-			$html .= $this->renderResult( $data );
-		}
-
 		// Type-specific form
-		if ( $type === 'album' ) {
+		if ( $type === 'record' || $type === 'album' ) {
 			$html .= $this->renderAlbumForm( $data, $status );
 		} else {
 			$html .= $this->renderGenericForm( $data, $status );
@@ -115,9 +114,10 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		$html .= $this->renderBlockheightField( $data );
 
 		// Action buttons
-		if ( $status === 'draft' ) {
-			$html .= $this->renderActions( $data );
-		}
+		$html .= $this->renderActions( $data );
+
+		// Provenance info (commit, source, uploader)
+		$html .= $this->renderProvenance( $data );
 
 		// Raw YAML
 		$yamlText = trim( $content->getText() );
@@ -132,9 +132,6 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 
 		// Categories
 		$output->addCategory( 'Release_Drafts' );
-		if ( $status === 'complete' ) {
-			$output->addCategory( 'Completed_Drafts' );
-		}
 	}
 
 	private function renderStatusBanner( string $status, array $data ): string {
@@ -322,10 +319,88 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 	}
 
 	private function renderGenericForm( array $data, string $status ): string {
-		// Placeholder for non-album draft types
-		$html = Html::openElement( 'div', [ 'class' => 'rd-generic-form' ] );
-		$html .= Html::element( 'h3', [], 'Content Draft' );
-		$html .= Html::element( 'p', [], 'Draft type: ' . ( $data['type'] ?? 'unknown' ) );
+		$content = $data['content'] ?? [];
+		$files = $data['files'] ?? [];
+		$disabled = $status !== 'draft' ? ' disabled' : '';
+
+		$html = Html::openElement( 'div', [ 'class' => 'rd-content-form', 'id' => 'rd-content-form' ] );
+		$html .= Html::element( 'h3', [], 'Content Info' );
+
+		$html .= Html::openElement( 'div', [ 'class' => 'uc-metadata-form' ] );
+
+		// Title
+		$html .= $this->renderField( 'rd-content-title', 'Title',
+			$content['title'] ?? '', 'text', $disabled );
+
+		// Description
+		$html .= Html::openElement( 'div', [ 'class' => 'uc-field' ] );
+		$html .= Html::element( 'label', [ 'for' => 'rd-content-description' ], 'Description' );
+		$html .= Html::element( 'textarea', [
+			'id' => 'rd-content-description',
+			'class' => 'cdx-text-input__input',
+			'rows' => 3,
+			'placeholder' => 'Optional description',
+			'disabled' => $status !== 'draft' ? true : false,
+		], $content['description'] ?? '' );
+		$html .= Html::closeElement( 'div' );
+
+		// File type override
+		$html .= $this->renderField( 'rd-content-file-type', 'File type override',
+			$content['file_type'] ?? '', 'text', $disabled );
+
+		// Subsequent to
+		$html .= $this->renderField( 'rd-content-subsequent-to', 'Subsequent to (CID)',
+			$content['subsequent_to'] ?? '', 'text', $disabled );
+
+		$html .= Html::closeElement( 'div' );
+
+		// File info table
+		// Each file's media_type ("audio", "video", "image", "other") is set by
+		// delivery-kid's analyze.detect_media_type() during upload, then written
+		// into the ReleaseDraft YAML by the creating Special page's JS.
+		if ( !empty( $files ) ) {
+			$html .= Html::element( 'h3', [], 'Files' );
+			$html .= Html::openElement( 'table', [ 'class' => 'wikitable' ] );
+			$html .= '<tr><th>File</th><th>Type</th><th>Format</th><th>Size</th></tr>';
+
+			foreach ( $files as $f ) {
+				$html .= Html::openElement( 'tr' );
+				$html .= Html::element( 'td', [], $f['original_filename'] ?? '' );
+				$html .= Html::element( 'td', [], $f['media_type'] ?? '' );
+				$html .= Html::element( 'td', [], $f['format'] ?? '' );
+				$sizeStr = !empty( $f['size_bytes'] ) ? $this->formatSize( (int)$f['size_bytes'] ) : '';
+				$html .= Html::element( 'td', [], $sizeStr );
+				$html .= Html::closeElement( 'tr' );
+
+				// Extra row for video details
+				if ( !empty( $f['width'] ) && !empty( $f['height'] ) ) {
+					$detail = $f['width'] . 'x' . $f['height'];
+					if ( !empty( $f['video_codec'] ) ) {
+						$detail .= ' · ' . $f['video_codec'];
+					}
+					if ( !empty( $f['audio_codec'] ) ) {
+						$detail .= ' · ' . $f['audio_codec'];
+					}
+					$html .= '<tr><td></td><td colspan="3">' . htmlspecialchars( $detail ) . '</td></tr>';
+				}
+			}
+
+			$html .= Html::closeElement( 'table' );
+
+			// Video transcoding info
+			$hasVideo = false;
+			foreach ( $files as $f ) {
+				if ( ( $f['media_type'] ?? '' ) === 'video' ) {
+					$hasVideo = true;
+					break;
+				}
+			}
+			if ( $hasVideo ) {
+				$html .= Html::rawElement( 'p', [ 'class' => 'uc-hls-info' ],
+					'Video will be transcoded to AV1 HLS (royalty-free) automatically on finalization.' );
+			}
+		}
+
 		$html .= Html::closeElement( 'div' );
 		return $html;
 	}
@@ -461,6 +536,38 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		return Html::rawElement( 'div', [ 'class' => 'release-validation-error' ],
 			$errorHtml . $errorList
 		);
+	}
+
+	private function renderProvenance( array $data ): string {
+		$commit = $data['commit'] ?? null;
+		$source = $data['source'] ?? null;
+		$uploader = $data['uploader'] ?? null;
+
+		if ( !$commit && !$source && !$uploader ) {
+			return '';
+		}
+
+		$html = Html::openElement( 'details', [ 'class' => 'rd-provenance' ] );
+		$html .= Html::element( 'summary', [], 'Provenance' );
+		$html .= Html::openElement( 'table', [ 'class' => 'wikitable' ] );
+
+		if ( $uploader ) {
+			$html .= '<tr>' . Html::element( 'th', [], 'Uploader' ) .
+				Html::element( 'td', [], $uploader ) . '</tr>';
+		}
+		if ( $source ) {
+			$html .= '<tr>' . Html::element( 'th', [], 'Source' ) .
+				Html::element( 'td', [], $source ) . '</tr>';
+		}
+		if ( $commit ) {
+			$html .= '<tr>' . Html::element( 'th', [], 'Build' ) .
+				Html::element( 'td', [ 'class' => 'rd-commit' ], $commit ) . '</tr>';
+		}
+
+		$html .= Html::closeElement( 'table' );
+		$html .= Html::closeElement( 'details' );
+
+		return $html;
 	}
 
 	private function renderRawYaml( string $yaml ): string {

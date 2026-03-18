@@ -101,52 +101,80 @@
 
 	function collectFormData() {
 		var data = JSON.parse( JSON.stringify( draftData ) );
+		// Draft type is set by the creating Special page's JS:
+		//   Special:UploadAlbum  → type: record   (ext.pickipediaReleases.uploadAlbum.js)
+		//   Special:UploadContent → type: other    (ext.pickipediaReleases.upload.js)
+		//   Blue Railroad bot    → type: blue-railroad
+		var draftType = data.type || 'record';
 
-		// Album fields
-		var titleEl = el( 'rd-album-title' );
-		var artistEl = el( 'rd-artist' );
-		var versionEl = el( 'rd-version' );
-		var descEl = el( 'rd-description' );
+		if ( draftType === 'record' || draftType === 'album' ) {
+			// Album/record fields
+			var titleEl = el( 'rd-album-title' );
+			var artistEl = el( 'rd-artist' );
+			var versionEl = el( 'rd-version' );
+			var descEl = el( 'rd-description' );
 
-		if ( !data.album ) {
-			data.album = {};
-		}
-		if ( titleEl ) {
-			data.album.title = titleEl.value;
-		}
-		if ( artistEl ) {
-			data.album.artist = artistEl.value;
-		}
-		if ( versionEl ) {
-			data.album.version = versionEl.value;
-		}
-		if ( descEl ) {
-			data.album.description = descEl.value;
-		}
+			if ( !data.album ) {
+				data.album = {};
+			}
+			if ( titleEl ) {
+				data.album.title = titleEl.value;
+			}
+			if ( artistEl ) {
+				data.album.artist = artistEl.value;
+			}
+			if ( versionEl ) {
+				data.album.version = versionEl.value;
+			}
+			if ( descEl ) {
+				data.album.description = descEl.value;
+			}
 
-		// Tracks — collect in current DOM order (respects drag reorder)
-		var trackRows = document.querySelectorAll( '.rd-track-row' );
-		var tracks = [];
-		trackRows.forEach( function ( row ) {
-			var titleInput = row.querySelector( '.rd-track-title' );
-			var metaTextarea = row.querySelector( '.rd-track-metadata' );
-			var filename = row.dataset.filename || '';
+			// Tracks — collect in current DOM order (respects drag reorder)
+			var trackRows = document.querySelectorAll( '.rd-track-row' );
+			var tracks = [];
+			trackRows.forEach( function ( row ) {
+				var titleInput = row.querySelector( '.rd-track-title' );
+				var metaTextarea = row.querySelector( '.rd-track-metadata' );
+				var filename = row.dataset.filename || '';
 
-			// Find original track data by filename
-			var original = ( draftData.tracks || [] ).find( function ( t ) {
-				return t.filename === filename;
-			} ) || {};
+				var original = ( draftData.tracks || [] ).find( function ( t ) {
+					return t.filename === filename;
+				} ) || {};
 
-			tracks.push( {
-				filename: filename,
-				title: titleInput ? titleInput.value : ( original.title || '' ),
-				metadata: metaTextarea ? metaTextarea.value : ( original.metadata || '' ),
-				format: original.format || '',
-				duration: original.duration || null,
-				size_bytes: original.size_bytes || null
+				tracks.push( {
+					filename: filename,
+					title: titleInput ? titleInput.value : ( original.title || '' ),
+					metadata: metaTextarea ? metaTextarea.value : ( original.metadata || '' ),
+					format: original.format || '',
+					duration: original.duration || null,
+					size_bytes: original.size_bytes || null
+				} );
 			} );
-		} );
-		data.tracks = tracks;
+			data.tracks = tracks;
+		} else {
+			// Content fields
+			if ( !data.content ) {
+				data.content = {};
+			}
+			var contentTitleEl = el( 'rd-content-title' );
+			var contentDescriptionEl = el( 'rd-content-description' );
+			var contentFileTypeEl = el( 'rd-content-file-type' );
+			var contentSubsequentToEl = el( 'rd-content-subsequent-to' );
+
+			if ( contentTitleEl ) {
+				data.content.title = contentTitleEl.value;
+			}
+			if ( contentDescriptionEl ) {
+				data.content.description = contentDescriptionEl.value;
+			}
+			if ( contentFileTypeEl ) {
+				data.content.file_type = contentFileTypeEl.value;
+			}
+			if ( contentSubsequentToEl ) {
+				data.content.subsequent_to = contentSubsequentToEl.value;
+			}
+		}
 
 		// Blockheight
 		var bhEl = el( 'rd-blockheight' );
@@ -208,11 +236,17 @@
 
 	function serializeToYaml( data ) {
 		// Build YAML manually for clean output (no library dependency)
+		// This is a prototype for the future Release API (issue #60)
 		var lines = [];
+		// See collectFormData() for where draftType originates
+		var draftType = data.type || 'record';
 
+		// Envelope — common to all draft types
 		lines.push( 'draft_id: ' + quote( data.draft_id || '' ) );
-		lines.push( 'type: ' + quote( data.type || 'album' ) );
-		lines.push( 'status: ' + quote( data.status || 'draft' ) );
+		lines.push( 'type: ' + quote( draftType ) );
+		lines.push( 'source: ' + quote( data.source || '' ) );
+		lines.push( 'commit: ' + quote( data.commit || '' ) );
+		lines.push( 'uploader: ' + quote( data.uploader || '' ) );
 
 		if ( data.blockheight ) {
 			lines.push( 'blockheight: ' + data.blockheight );
@@ -220,45 +254,71 @@
 			lines.push( 'blockheight: null' );
 		}
 
-		// Album section
-		lines.push( 'album:' );
-		var album = data.album || {};
-		lines.push( '    title: ' + quote( album.title || '' ) );
-		lines.push( '    artist: ' + quote( album.artist || '' ) );
-		lines.push( '    version: ' + quote( album.version || '' ) );
-		lines.push( '    description: ' + quote( album.description || '' ) );
+		// Type-specific payload
+		if ( draftType === 'record' || draftType === 'album' ) {
+			lines.push( 'album:' );
+			var album = data.album || {};
+			lines.push( '    title: ' + quote( album.title || '' ) );
+			lines.push( '    artist: ' + quote( album.artist || '' ) );
+			lines.push( '    version: ' + quote( album.version || '' ) );
+			lines.push( '    description: ' + quote( album.description || '' ) );
 
-		// Tracks
-		lines.push( 'tracks:' );
-		( data.tracks || [] ).forEach( function ( track ) {
-			lines.push( '    -' );
-			lines.push( '        filename: ' + quote( track.filename || '' ) );
-			lines.push( '        title: ' + quote( track.title || '' ) );
-			if ( track.format ) {
-				lines.push( '        format: ' + quote( track.format ) );
-			}
-			if ( track.duration ) {
-				lines.push( '        duration: ' + track.duration );
-			}
-			if ( track.size_bytes ) {
-				lines.push( '        size_bytes: ' + track.size_bytes );
-			}
-			if ( track.metadata ) {
-				// Multi-line metadata uses YAML literal block scalar
-				lines.push( '        metadata: |' );
-				track.metadata.split( '\n' ).forEach( function ( ml ) {
-					lines.push( '            ' + ml );
+			lines.push( 'tracks:' );
+			( data.tracks || [] ).forEach( function ( track ) {
+				lines.push( '    -' );
+				lines.push( '        filename: ' + quote( track.filename || '' ) );
+				lines.push( '        title: ' + quote( track.title || '' ) );
+				if ( track.format ) {
+					lines.push( '        format: ' + quote( track.format ) );
+				}
+				if ( track.duration ) {
+					lines.push( '        duration: ' + track.duration );
+				}
+				if ( track.size_bytes ) {
+					lines.push( '        size_bytes: ' + track.size_bytes );
+				}
+				if ( track.metadata ) {
+					lines.push( '        metadata: |' );
+					track.metadata.split( '\n' ).forEach( function ( ml ) {
+						lines.push( '            ' + ml );
+					} );
+				} else {
+					lines.push( '        metadata: ""' );
+				}
+			} );
+		} else {
+			// Content (and future types)
+			lines.push( 'content:' );
+			var content = data.content || {};
+			lines.push( '    title: ' + quote( content.title || '' ) );
+			lines.push( '    description: ' + quote( content.description || '' ) );
+			lines.push( '    file_type: ' + quote( content.file_type || '' ) );
+			lines.push( '    subsequent_to: ' + quote( content.subsequent_to || '' ) );
+
+			if ( data.files && data.files.length > 0 ) {
+				lines.push( 'files:' );
+				data.files.forEach( function ( f ) {
+					lines.push( '    -' );
+					lines.push( '        original_filename: ' + quote( f.original_filename || '' ) );
+					lines.push( '        media_type: ' + quote( f.media_type || '' ) );
+					if ( f.format ) {
+						lines.push( '        format: ' + quote( f.format ) );
+					}
+					if ( f.duration_seconds ) {
+						lines.push( '        duration_seconds: ' + f.duration_seconds );
+					}
+					if ( f.width ) {
+						lines.push( '        width: ' + f.width );
+					}
+					if ( f.height ) {
+						lines.push( '        height: ' + f.height );
+					}
+					if ( f.size_bytes ) {
+						lines.push( '        size_bytes: ' + f.size_bytes );
+					}
 				} );
-			} else {
-				lines.push( '        metadata: ""' );
 			}
-		} );
-
-		// Result section
-		lines.push( 'result:' );
-		var result = data.result || {};
-		lines.push( '    cid: ' + ( result.cid ? quote( result.cid ) : 'null' ) );
-		lines.push( '    gateway_url: ' + ( result.gateway_url ? quote( result.gateway_url ) : 'null' ) );
+		}
 
 		return lines.join( '\n' ) + '\n';
 	}
@@ -295,20 +355,11 @@
 		finalizeBtn.addEventListener( 'click', function () {
 			var data = collectFormData();
 			var draftId = data.draft_id;
+			// See collectFormData() for where draftType originates
+			var draftType = data.type || 'record';
+
 			if ( !draftId ) {
 				showFinalizeError( 'No draft ID — cannot finalize.' );
-				return;
-			}
-
-			var album = data.album || {};
-			if ( !album.title ) {
-				showFinalizeError( 'Album title is required to finalize.' );
-				el( 'rd-album-title' ).focus();
-				return;
-			}
-			if ( !album.artist ) {
-				showFinalizeError( 'Artist is required to finalize.' );
-				el( 'rd-artist' ).focus();
 				return;
 			}
 
@@ -318,8 +369,67 @@
 				return;
 			}
 
-			if ( !confirm( 'Finalize this album? This will transcode, tag, and pin to IPFS.' ) ) {
-				return;
+			var authHeaders = {
+				'X-Upload-Token': mw.config.get( 'wgUploadToken' ),
+				'X-Upload-User': mw.config.get( 'wgUploadUser' ),
+				'X-Upload-Timestamp': String( mw.config.get( 'wgUploadTimestamp' ) )
+			};
+
+			var headers = Object.assign( {}, authHeaders, {
+				'Content-Type': 'application/json'
+			} );
+
+			var endpoint, body;
+
+			if ( draftType === 'record' || draftType === 'album' ) {
+				var album = data.album || {};
+				if ( !album.title ) {
+					showFinalizeError( 'Album title is required to finalize.' );
+					el( 'rd-album-title' ).focus();
+					return;
+				}
+				if ( !album.artist ) {
+					showFinalizeError( 'Artist is required to finalize.' );
+					el( 'rd-artist' ).focus();
+					return;
+				}
+
+				if ( !confirm( 'Finalize this album? This will transcode, tag, and pin to IPFS.' ) ) {
+					return;
+				}
+
+				var tracks = ( data.tracks || [] ).map( function ( t ) {
+					return {
+						filename: t.filename,
+						title: t.title,
+						metadata: t.metadata || ''
+					};
+				} );
+
+				endpoint = '/draft-album/' + draftId + '/finalize';
+				body = JSON.stringify( {
+					album_title: album.title,
+					artist: album.artist,
+					description: album.description || null,
+					tracks: tracks
+				} );
+			} else {
+				// Content finalization
+				var content = data.content || {};
+
+				if ( !confirm( 'Finalize and pin to IPFS?' ) ) {
+					return;
+				}
+
+				endpoint = '/draft-content/' + draftId + '/finalize';
+				body = JSON.stringify( {
+					title: content.title || null,
+					description: content.description || null,
+					file_type: content.file_type || null,
+					subsequent_to: content.subsequent_to || null,
+					transcoding_strategy: 'auto',
+					metadata: {}
+				} );
 			}
 
 			finalizeBtn.disabled = true;
@@ -334,33 +444,7 @@
 			setStatus( 'Starting finalization...', '' );
 			appendLog( 'Sending finalize request to delivery-kid...' );
 
-			// Build track order with per-track metadata
-			var tracks = ( data.tracks || [] ).map( function ( t ) {
-				return {
-					filename: t.filename,
-					title: t.title,
-					metadata: t.metadata || ''
-				};
-			} );
-
-			var authHeaders = {
-				'X-Upload-Token': mw.config.get( 'wgUploadToken' ),
-				'X-Upload-User': mw.config.get( 'wgUploadUser' ),
-				'X-Upload-Timestamp': String( mw.config.get( 'wgUploadTimestamp' ) )
-			};
-
-			var headers = Object.assign( {}, authHeaders, {
-				'Content-Type': 'application/json'
-			} );
-
-			var body = JSON.stringify( {
-				album_title: album.title,
-				artist: album.artist,
-				description: album.description || null,
-				tracks: tracks
-			} );
-
-			fetch( apiUrl + '/draft-album/' + draftId + '/finalize', {
+			fetch( apiUrl + endpoint, {
 				method: 'POST',
 				headers: headers,
 				body: body
@@ -459,9 +543,17 @@
 		} else if ( event === 'complete' ) {
 			setProgress( 100 );
 			setActiveStage( 'complete' );
-			setStatus( 'Album pinned to IPFS!', 'success' );
+			setStatus( 'Pinned to IPFS!', 'success' );
 			appendLog( 'CID: ' + ( data.cid || 'unknown' ) );
-			saveResultToPage( data );
+			showFinalizeResult( data );
+		} else if ( event === 'transcoding-submitted' ) {
+			setProgress( 100 );
+			setActiveStage( 'complete' );
+			setStatus( 'Cloud transcoding submitted!', 'success' );
+			appendLog( 'Source CID: ' + ( data.sourceCid || 'unknown' ) );
+			appendLog( 'Job ID: ' + ( data.jobId || 'unknown' ) );
+			appendLog( data.message || '' );
+			showTranscodingResult( data );
 		} else if ( event === 'error' ) {
 			setStageError();
 			showFinalizeError( 'Error: ' + ( data.message || 'Unknown error' ) );
@@ -536,77 +628,57 @@
 		log.scrollTop = log.scrollHeight;
 	}
 
-	function saveResultToPage( resultData ) {
-		// Update local data with result, change status to complete
+	function showFinalizeResult( resultData ) {
+		// Save the draft page (preserving current form data) — no Release page creation.
+		// The bot will create the Release page when it processes completed drafts.
 		var data = collectFormData();
-		data.status = 'complete';
-		data.result = {
-			cid: resultData.cid || null,
-			gateway_url: resultData.gateway_url || null
-		};
-
 		var yaml = serializeToYaml( data );
+		var cid = resultData.cid;
+
 		var api = new mw.Api();
 		api.postWithEditToken( {
 			action: 'edit',
 			title: mw.config.get( 'wgPageName' ),
 			text: yaml,
-			summary: 'Finalized: pinned to IPFS as ' + ( resultData.cid || 'unknown' )
+			summary: 'Finalized: pinned to IPFS as ' + ( cid || 'unknown' )
 		} ).then( function () {
-			setStatus( 'Draft saved. Creating Release page...', 'success' );
-			return createReleasePage( data, resultData );
-		} ).then( function () {
-			setStatus( 'Done! Redirecting to Release page...', 'success' );
-			window.location.href = mw.util.getUrl( 'Release:' + resultData.cid );
+			var releaseUrl = mw.util.getUrl( 'Release:' + cid );
+			setStatus( 'Pinned to IPFS! CID: ' + cid, 'success' );
+			appendLog( 'Gateway: ' + ( resultData.gateway_url || '' ) );
+			appendLog( 'Release page will be created by the bot.' );
+			appendLog( '' );
+
+			// Show a link to the (future) Release page
+			var linkHtml = '<p><a href="' + mw.html.escape( releaseUrl ) + '">' +
+				'Release:' + mw.html.escape( cid ) + '</a></p>';
+			var logEl = el( 'rd-progress-log' );
+			if ( logEl ) {
+				logEl.innerHTML += linkHtml;
+			}
 		} ).fail( function ( code, result ) {
-			setStatus( 'Pinned to IPFS but failed to save: ' +
-				( result.error ? result.error.info : code ) + '. CID: ' + resultData.cid, 'error' );
+			setStatus( 'Pinned to IPFS but failed to save draft: ' +
+				( result.error ? result.error.info : code ) + '. CID: ' + cid, 'error' );
 		} );
 	}
 
-	function createReleasePage( draftData, resultData ) {
-		var cid = resultData.cid;
-		if ( !cid ) {
-			return $.Deferred().resolve().promise();
-		}
-
-		var album = draftData.album || {};
-		var lines = [];
-
-		// Build release-yaml content
-		var title = album.artist && album.title
-			? album.artist + ' - ' + album.title
-			: album.title || '';
-		if ( album.version ) {
-			title += ' (' + album.version + ')';
-		}
-		lines.push( 'title: ' + quote( title ) );
-
-		if ( album.description ) {
-			lines.push( 'description: ' + quote( album.description ) );
-		}
-
-		if ( draftData.blockheight ) {
-			lines.push( 'blockheight: ' + draftData.blockheight );
-		}
-
-		lines.push( 'pinned_on:' );
-		lines.push( '  - delivery-kid' );
-
-		var releaseYaml = lines.join( '\n' ) + '\n';
+	function showTranscodingResult( data ) {
+		// Coconut cloud transcoding was submitted — save draft and show polling UI
+		var formData = collectFormData();
+		var yaml = serializeToYaml( formData );
 
 		var api = new mw.Api();
-		return api.postWithEditToken( {
+		api.postWithEditToken( {
 			action: 'edit',
-			title: 'Release:' + cid,
-			text: releaseYaml,
-			summary: 'Release created from draft: ' + ( album.title || cid ),
-			createonly: true
-		} ).fail( function ( code ) {
-			// If page already exists, that's fine
-			if ( code === 'articleexists' ) {
-				return $.Deferred().resolve().promise();
-			}
+			title: mw.config.get( 'wgPageName' ),
+			text: yaml,
+			summary: 'Transcoding submitted: job ' + ( data.jobId || 'unknown' )
+		} ).then( function () {
+			appendLog( 'Draft saved. Transcoding will complete asynchronously.' );
+			appendLog( 'When transcoding finishes, the HLS output will be pinned to IPFS.' );
+			appendLog( 'The bot will then create the Release page.' );
+		} ).fail( function ( code, result ) {
+			appendLog( 'Warning: failed to save draft page: ' +
+				( result.error ? result.error.info : code ) );
 		} );
 	}
 
