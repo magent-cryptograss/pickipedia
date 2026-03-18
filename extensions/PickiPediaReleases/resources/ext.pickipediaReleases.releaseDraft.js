@@ -102,13 +102,13 @@
 	function collectFormData() {
 		var data = JSON.parse( JSON.stringify( draftData ) );
 		// Draft type is set by the creating Special page's JS:
-		//   Special:UploadAlbum  → type: album    (ext.pickipediaReleases.uploadAlbum.js)
-		//   Special:UploadContent → type: content  (ext.pickipediaReleases.upload.js)
+		//   Special:UploadAlbum  → type: record   (ext.pickipediaReleases.uploadAlbum.js)
+		//   Special:UploadContent → type: other    (ext.pickipediaReleases.upload.js)
 		//   Blue Railroad bot    → type: blue-railroad
-		var draftType = data.type || 'album';
+		var draftType = data.type || 'record';
 
-		if ( draftType === 'album' ) {
-			// Album fields
+		if ( draftType === 'record' || draftType === 'album' ) {
+			// Album/record fields
 			var titleEl = el( 'rd-album-title' );
 			var artistEl = el( 'rd-artist' );
 			var versionEl = el( 'rd-version' );
@@ -239,7 +239,7 @@
 		// This is a prototype for the future Release API (issue #60)
 		var lines = [];
 		// See collectFormData() for where draftType originates
-		var draftType = data.type || 'album';
+		var draftType = data.type || 'record';
 
 		// Envelope — common to all draft types
 		lines.push( 'draft_id: ' + quote( data.draft_id || '' ) );
@@ -255,7 +255,7 @@
 		}
 
 		// Type-specific payload
-		if ( draftType === 'album' ) {
+		if ( draftType === 'record' || draftType === 'album' ) {
 			lines.push( 'album:' );
 			var album = data.album || {};
 			lines.push( '    title: ' + quote( album.title || '' ) );
@@ -356,7 +356,7 @@
 			var data = collectFormData();
 			var draftId = data.draft_id;
 			// See collectFormData() for where draftType originates
-			var draftType = data.type || 'album';
+			var draftType = data.type || 'record';
 
 			if ( !draftId ) {
 				showFinalizeError( 'No draft ID — cannot finalize.' );
@@ -381,7 +381,7 @@
 
 			var endpoint, body;
 
-			if ( draftType === 'album' ) {
+			if ( draftType === 'record' || draftType === 'album' ) {
 				var album = data.album || {};
 				if ( !album.title ) {
 					showFinalizeError( 'Album title is required to finalize.' );

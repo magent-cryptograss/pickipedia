@@ -44,7 +44,7 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 	public function makeEmptyContent(): ReleaseDraftContent {
 		$yaml = Yaml::dump( [
 			'draft_id' => '',
-			'type' => 'album',
+			'type' => 'record',
 			'status' => 'draft',
 			'blockheight' => null,
 			'album' => [
@@ -104,7 +104,7 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		$html .= $this->renderStatusBanner( $status, $data );
 
 		// Type-specific form
-		if ( $type === 'album' ) {
+		if ( $type === 'record' || $type === 'album' ) {
 			$html .= $this->renderAlbumForm( $data, $status );
 		} else {
 			$html .= $this->renderGenericForm( $data, $status );

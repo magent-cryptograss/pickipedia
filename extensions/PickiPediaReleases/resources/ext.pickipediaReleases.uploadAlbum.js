@@ -226,7 +226,7 @@
 	function buildAlbumYaml( draftId, commit, tracks ) {
 		var lines = [];
 		lines.push( 'draft_id: ' + draftId );
-		lines.push( 'type: album' );
+		lines.push( 'type: record' );
 		lines.push( 'source: special-upload-album' );
 		lines.push( 'commit: ' + commit );
 		lines.push( 'uploader: ' + quote( mw.config.get( 'wgUploadUser' ) || '' ) );

@@ -4,7 +4,7 @@
  * After upload+analysis, creates a ReleaseDraft wiki page and redirects there.
  * The ReleaseDraft namespace handles review, metadata editing, and finalization.
  *
- * Same pattern as uploadAlbum.js, but creates type=content drafts.
+ * Same pattern as uploadAlbum.js, but creates type=other drafts.
  */
 ( function () {
 	'use strict';
@@ -225,7 +225,7 @@
 	function buildContentYaml( draftId, draft ) {
 		var lines = [];
 		lines.push( 'draft_id: ' + draftId );
-		lines.push( 'type: content' );
+		lines.push( 'type: other' );
 		lines.push( 'source: special-upload-content' );
 		lines.push( 'commit: ' + ( draft.commit || 'unknown' ) );
 		lines.push( 'uploader: ' + quote( mw.config.get( 'wgUploadUser' ) || '' ) );

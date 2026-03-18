@@ -70,7 +70,7 @@ class ReleaseDraftContent extends TextContent {
 	}
 
 	public function getDraftType(): string {
-		return $this->getData()['type'] ?? 'album';
+		return $this->getData()['type'] ?? 'record';
 	}
 
 	public function getSource(): string {
@@ -149,7 +149,8 @@ class ReleaseDraftContent extends TextContent {
 	public function getTextForSearchIndex(): string {
 		$parts = [];
 
-		if ( $this->getDraftType() === 'album' ) {
+		$draftType = $this->getDraftType();
+		if ( $draftType === 'record' || $draftType === 'album' ) {
 			$album = $this->getAlbumData();
 			if ( !empty( $album['title'] ) ) {
 				$parts[] = $album['title'];
@@ -179,7 +180,8 @@ class ReleaseDraftContent extends TextContent {
 	}
 
 	public function getTextForSummary( $maxLength = 250 ) {
-		if ( $this->getDraftType() === 'album' ) {
+		$draftType = $this->getDraftType();
+		if ( $draftType === 'record' || $draftType === 'album' ) {
 			$album = $this->getAlbumData();
 			$summary = '';
 			if ( !empty( $album['artist'] ) && !empty( $album['title'] ) ) {
