@@ -14,4 +14,5 @@ $specialPageAliases['en'] = [
 	'DeliverOtherContent' => [ 'DeliverOtherContent', 'Deliver Other Content', 'UploadContent', 'Upload Content' ],
 	'DeliverRecord' => [ 'DeliverRecord', 'Deliver Record', 'UploadAlbum', 'Upload Album' ],
 	'DeliverVideo' => [ 'DeliverVideo', 'Deliver Video' ],
+	'DeliverBlueRailroad' => [ 'DeliverBlueRailroad', 'Deliver Blue Railroad', 'Blue Railroad Submission' ],
 ];

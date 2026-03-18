@@ -365,8 +365,53 @@
 					}
 				} );
 			}
+		} else if ( draftType === 'blue-railroad' ) {
+			// Blue Railroad — preserve all content fields through save
+			lines.push( 'content:' );
+			var brContent = data.content || {};
+			lines.push( '    exercise: ' + quoteYamlValue( brContent.exercise || '' ) );
+			lines.push( '    file_type: ' + quoteYamlValue( brContent.file_type || 'video' ) );
+			if ( brContent.venue ) {
+				lines.push( '    venue: ' + quoteYamlValue( brContent.venue ) );
+			}
+			if ( brContent.recorder ) {
+				lines.push( '    recorder: ' + quoteYamlValue( brContent.recorder ) );
+			}
+			if ( brContent.notes ) {
+				lines.push( '    notes: ' + quoteYamlValue( brContent.notes ) );
+			}
+			if ( brContent.participants && brContent.participants.length > 0 ) {
+				lines.push( '    participants:' );
+				brContent.participants.forEach( function ( p ) {
+					lines.push( '        - ' + quoteYamlValue( p ) );
+				} );
+			}
+
+			if ( data.files && data.files.length > 0 ) {
+				lines.push( 'files:' );
+				data.files.forEach( function ( f ) {
+					lines.push( '    -' );
+					lines.push( '        original_filename: ' + quoteYamlValue( f.original_filename || '' ) );
+					lines.push( '        media_type: ' + quoteYamlValue( f.media_type || '' ) );
+					if ( f.format ) {
+						lines.push( '        format: ' + quoteYamlValue( f.format ) );
+					}
+					if ( f.duration_seconds ) {
+						lines.push( '        duration_seconds: ' + f.duration_seconds );
+					}
+					if ( f.width ) {
+						lines.push( '        width: ' + f.width );
+					}
+					if ( f.height ) {
+						lines.push( '        height: ' + f.height );
+					}
+					if ( f.size_bytes ) {
+						lines.push( '        size_bytes: ' + f.size_bytes );
+					}
+				} );
+			}
 		} else {
-			// Content (other, blue-railroad, etc.)
+			// Content (other, etc.)
 			lines.push( 'content:' );
 			var content = data.content || {};
 			lines.push( '    title: ' + quoteYamlValue( content.title || '' ) );

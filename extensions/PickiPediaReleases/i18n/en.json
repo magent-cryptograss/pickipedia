@@ -22,6 +22,8 @@
 	"special-deliverrecord-header": "",
 	"delivervideo": "Deliver Video",
 	"special-delivervideo-header": "",
+	"deliverbluerailroad": "Blue Railroad Train",
+	"special-deliverbluerailroad-header": "",
 	"action-upload-to-delivery-kid": "upload content to the delivery-kid pinning service",
 	"right-upload-to-delivery-kid": "Upload content directly to the delivery-kid IPFS pinning service",
 	"action-finalize-release": "finalize a release draft and pin to IPFS",

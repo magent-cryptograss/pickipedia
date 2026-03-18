@@ -44,7 +44,8 @@
 		"Releases": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialReleases",
 		"DeliverOtherContent": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverOtherContent",
 		"DeliverRecord": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverRecord",
-		"DeliverVideo": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverVideo"
+		"DeliverVideo": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverVideo",
+		"DeliverBlueRailroad": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverBlueRailroad"
 	},
 	"APIModules": {
 		"releaselist": {
@@ -84,6 +85,10 @@
 		},
 		"ext.pickipediaReleases.deliverVideo": {
 			"scripts": ["ext.pickipediaReleases.deliverVideo.js"],
+			"dependencies": ["mediawiki.util", "mediawiki.api"]
+		},
+		"ext.pickipediaReleases.deliverBlueRailroad": {
+			"scripts": ["ext.pickipediaReleases.deliverBlueRailroad.js"],
 			"dependencies": ["mediawiki.util", "mediawiki.api"]
 		},
 		"ext.pickipediaReleases.deliveryKidInput": {
