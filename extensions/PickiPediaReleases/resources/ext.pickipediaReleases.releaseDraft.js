@@ -382,6 +382,9 @@
 					if ( f.size_bytes ) {
 						lines.push( '        size_bytes: ' + f.size_bytes );
 					}
+					if ( f.creation_time ) {
+						lines.push( '        creation_time: ' + quoteYamlValue( f.creation_time ) );
+					}
 				} );
 			}
 		} else if ( draftType === 'blue-railroad' ) {
@@ -1101,12 +1104,34 @@
 
 	// -- Init --
 
+	function initCreationTimeFallback() {
+		// If the date field is empty and a video file has creation_time
+		// metadata (from the camera/phone), pre-fill the date picker.
+		var dateInput = el( 'rd-date-input' );
+		var bhInput = el( 'rd-blockheight' );
+		if ( !dateInput || dateInput.value || ( bhInput && bhInput.value ) ) {
+			return;
+		}
+		var files = ( draftData && draftData.files ) || [];
+		for ( var i = 0; i < files.length; i++ ) {
+			if ( files[ i ].creation_time ) {
+				var dateStr = files[ i ].creation_time.substring( 0, 10 );
+				if ( /^\d{4}-\d{2}-\d{2}$/.test( dateStr ) ) {
+					dateInput.value = dateStr;
+					dateInput.dispatchEvent( new Event( 'change' ) );
+					break;
+				}
+			}
+		}
+	}
+
 	function init() {
 		initTrackDragReorder();
 		initSaveButton();
 		initFinalizeButton();
 		initBlockheightConverter();
 		initVideoPreview();
+		initCreationTimeFallback();
 	}
 
 	mw.loader.using( [ 'mediawiki.util', 'mediawiki.api' ] ).then( init );

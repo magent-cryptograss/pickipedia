@@ -452,11 +452,14 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		], $content['description'] ?? '' );
 		$html .= Html::closeElement( 'div' );
 
-		// File type override
+		$html .= Html::closeElement( 'div' );
+
+		// More settings (collapsed)
+		$html .= Html::openElement( 'details', [ 'class' => 'rd-more-settings' ] );
+		$html .= Html::element( 'summary', [], 'More settings' );
 		$html .= $this->renderField( 'rd-content-file-type', 'File type override',
 			$content['file_type'] ?? '', 'text', $disabled );
-
-		$html .= Html::closeElement( 'div' );
+		$html .= Html::closeElement( 'details' );
 
 		// File info table — media_type values ("audio", "video", "image", "other")
 		// are set by delivery-kid's analyze.detect_media_type() during upload,
@@ -579,12 +582,22 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		$blockheight = $data['blockheight'] ?? '';
 
 		$html = Html::openElement( 'div', [ 'class' => 'rd-blockheight-section' ] );
-		$html .= Html::element( 'h3', [], 'Temporal Reference' );
+		$html .= Html::element( 'h3', [], 'When did this happen?' );
 
 		$html .= Html::openElement( 'div', [ 'class' => 'uc-field' ] );
-		$html .= Html::element( 'label', [ 'for' => 'rd-blockheight' ], 'Ethereum Block Height' );
+		$html .= Html::element( 'label', [ 'for' => 'rd-date-input' ],
+			'Approximately when did the events depicted go down?' );
+
+		$html .= Html::openElement( 'div', [ 'class' => 'rd-date-converter' ] );
+		$html .= Html::element( 'input', [
+			'type' => 'date',
+			'id' => 'rd-date-input',
+			'class' => 'cdx-text-input__input rd-date-input',
+		] );
+		$html .= Html::closeElement( 'div' );
 
 		$html .= Html::openElement( 'div', [ 'class' => 'rd-blockheight-row' ] );
+		$html .= Html::element( 'label', [ 'for' => 'rd-blockheight' ], 'Or enter an Ethereum block height:' );
 		$html .= Html::element( 'input', [
 			'type' => 'text',
 			'id' => 'rd-blockheight',
@@ -600,28 +613,14 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		$html .= Html::element( 'span', [ 'id' => 'rd-blockheight-date', 'class' => 'rd-blockheight-date' ], '' );
 		$html .= Html::closeElement( 'div' );
 
-		$html .= Html::openElement( 'div', [ 'class' => 'rd-date-converter' ] );
-		$html .= Html::element( 'label', [ 'for' => 'rd-date-input' ], 'Or pick a date:' );
-		$html .= Html::element( 'input', [
-			'type' => 'date',
-			'id' => 'rd-date-input',
-			'class' => 'cdx-text-input__input rd-date-input',
-		] );
-		$html .= Html::closeElement( 'div' );
-
-		// Upload blockheight — auto-captured at upload time, read-only
+		// Upload blockheight — auto-captured server-side, preserved in YAML
 		$uploadBlockheight = $data['upload_blockheight'] ?? null;
 		if ( $uploadBlockheight ) {
-			$html .= Html::openElement( 'div', [ 'class' => 'uc-field' ] );
-			$html .= Html::element( 'label', [], 'Upload block height' );
-			$html .= Html::element( 'span', [ 'class' => 'rd-upload-blockheight' ],
-				(string)$uploadBlockheight );
 			$html .= Html::element( 'input', [
 				'type' => 'hidden',
 				'id' => 'rd-upload-blockheight',
 				'value' => $uploadBlockheight,
 			] );
-			$html .= Html::closeElement( 'div' );
 		}
 
 		$html .= Html::closeElement( 'div' );

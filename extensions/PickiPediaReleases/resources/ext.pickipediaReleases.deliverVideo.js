@@ -360,7 +360,27 @@
 			if ( f.size_bytes ) {
 				lines.push( '        size_bytes: ' + f.size_bytes );
 			}
+			if ( f.creation_time ) {
+				lines.push( '        creation_time: ' + quoteYamlValue( f.creation_time ) );
+			}
 		} );
+
+		// If the user hasn't picked a date and the video has creation_time
+		// metadata, use it as the default content date.
+		var contentDateInput = el( 'dv-content-date' );
+		var contentBhInput = el( 'dv-content-blockheight' );
+		if ( contentDateInput && !contentDateInput.value && contentBhInput && !contentBhInput.value ) {
+			var firstFile = ( draft.files || [] )[ 0 ];
+			if ( firstFile && firstFile.creation_time ) {
+				// creation_time is ISO 8601, e.g. "2026-03-15T14:30:00.000000Z"
+				var dateStr = firstFile.creation_time.substring( 0, 10 );
+				if ( dateStr && /^\d{4}-\d{2}-\d{2}$/.test( dateStr ) ) {
+					contentDateInput.value = dateStr;
+					// Trigger change event so the blockheight converter picks it up
+					contentDateInput.dispatchEvent( new Event( 'change' ) );
+				}
+			}
+		}
 
 		return lines.join( '\n' ) + '\n';
 	}
