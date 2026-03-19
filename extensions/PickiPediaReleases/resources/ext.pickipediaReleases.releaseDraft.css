@@ -253,6 +253,18 @@
 	margin-bottom: 1em;
 }
 
+/* Video preview */
+.rd-video-preview {
+	margin: 1.5em 0;
+}
+
+.rd-video-player {
+	width: 100%;
+	max-width: 800px;
+	background: #000;
+	border-radius: 4px;
+}
+
 /* Raw YAML toggle */
 .release-raw-yaml {
 	margin-top: 2em;

@@ -954,6 +954,40 @@
 		} );
 	}
 
+	// -- Video preview --
+
+	function initVideoPreview() {
+		var video = el( 'rd-video-player' );
+		if ( !video ) {
+			return;
+		}
+
+		var deliveryKidUrl = mw.config.get( 'wgDeliveryKidUrl' );
+		var token = mw.config.get( 'wgUploadToken' );
+		var user = mw.config.get( 'wgUploadUser' );
+		var timestamp = mw.config.get( 'wgUploadTimestamp' );
+		var draftId = video.getAttribute( 'data-draft-id' );
+		var filename = video.getAttribute( 'data-filename' );
+
+		if ( !deliveryKidUrl || !token || !draftId || !filename ) {
+			// Not logged in or missing config — hide the player
+			var container = el( 'rd-video-preview' );
+			if ( container ) {
+				container.style.display = 'none';
+			}
+			return;
+		}
+
+		var src = deliveryKidUrl + '/staging/drafts/' +
+			encodeURIComponent( draftId ) + '/' +
+			encodeURIComponent( filename ) +
+			'?token=' + encodeURIComponent( token ) +
+			'&user=' + encodeURIComponent( user ) +
+			'&timestamp=' + encodeURIComponent( timestamp );
+
+		video.src = src;
+	}
+
 	// -- Init --
 
 	function init() {
@@ -961,6 +995,7 @@
 		initSaveButton();
 		initFinalizeButton();
 		initBlockheightConverter();
+		initVideoPreview();
 	}
 
 	mw.loader.using( [ 'mediawiki.util', 'mediawiki.api' ] ).then( init );
