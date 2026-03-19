@@ -506,6 +506,63 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 							'data-filename' => $f['original_filename'] ?? '',
 						] )
 					);
+
+					// Trim controls — set start/end from current playback position
+					$trimStart = $data['content']['trim_start_seconds'] ?? '';
+					$trimEnd = $data['content']['trim_end_seconds'] ?? '';
+					$disabled = ( $status !== 'draft' ) ? [ 'disabled' => true ] : [];
+
+					$html .= Html::openElement( 'div', [
+						'class' => 'rd-trim-controls',
+						'id' => 'rd-trim-controls',
+					] );
+					$html .= Html::element( 'h4', [], 'Trim' );
+
+					$html .= Html::openElement( 'div', [ 'class' => 'rd-trim-row' ] );
+
+					$html .= Html::openElement( 'div', [ 'class' => 'rd-trim-field' ] );
+					$html .= Html::element( 'label', [ 'for' => 'rd-trim-start' ], 'Start' );
+					$html .= Html::element( 'input', array_merge( [
+						'type' => 'text',
+						'id' => 'rd-trim-start',
+						'class' => 'rd-trim-input',
+						'value' => $trimStart,
+						'placeholder' => '0:00',
+						'size' => 8,
+					], $disabled ) );
+					$html .= Html::element( 'button', array_merge( [
+						'type' => 'button',
+						'id' => 'rd-trim-set-start',
+						'class' => 'rd-trim-set-btn',
+					], $disabled ), 'Set start' );
+					$html .= Html::closeElement( 'div' );
+
+					$html .= Html::openElement( 'div', [ 'class' => 'rd-trim-field' ] );
+					$html .= Html::element( 'label', [ 'for' => 'rd-trim-end' ], 'End' );
+					$html .= Html::element( 'input', array_merge( [
+						'type' => 'text',
+						'id' => 'rd-trim-end',
+						'class' => 'rd-trim-input',
+						'value' => $trimEnd,
+						'placeholder' => '0:00',
+						'size' => 8,
+					], $disabled ) );
+					$html .= Html::element( 'button', array_merge( [
+						'type' => 'button',
+						'id' => 'rd-trim-set-end',
+						'class' => 'rd-trim-set-btn',
+					], $disabled ), 'Set end' );
+					$html .= Html::closeElement( 'div' );
+
+					$html .= Html::closeElement( 'div' ); // .rd-trim-row
+
+					$html .= Html::element( 'div', [
+						'class' => 'rd-trim-preview',
+						'id' => 'rd-trim-preview',
+					] );
+
+					$html .= Html::closeElement( 'div' ); // .rd-trim-controls
+
 					break; // Only embed first video
 				}
 			}

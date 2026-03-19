@@ -185,6 +185,19 @@
 					return s.length > 0;
 				} );
 			}
+			// Trim points
+			var trimStartEl = el( 'rd-trim-start' );
+			var trimEndEl = el( 'rd-trim-end' );
+			if ( trimStartEl && trimStartEl.value.trim() ) {
+				data.content.trim_start_seconds = parseTime( trimStartEl.value );
+			} else {
+				delete data.content.trim_start_seconds;
+			}
+			if ( trimEndEl && trimEndEl.value.trim() ) {
+				data.content.trim_end_seconds = parseTime( trimEndEl.value );
+			} else {
+				delete data.content.trim_end_seconds;
+			}
 		} else {
 			// Content fields (other, blue-railroad, etc.)
 			if ( !data.content ) {
@@ -341,6 +354,12 @@
 			( vidContent.performers || [] ).forEach( function ( p ) {
 				lines.push( '        - ' + quoteYamlValue( p ) );
 			} );
+			if ( vidContent.trim_start_seconds !== null && vidContent.trim_start_seconds !== undefined ) {
+				lines.push( '    trim_start_seconds: ' + vidContent.trim_start_seconds );
+			}
+			if ( vidContent.trim_end_seconds !== null && vidContent.trim_end_seconds !== undefined ) {
+				lines.push( '    trim_end_seconds: ' + vidContent.trim_end_seconds );
+			}
 
 			if ( data.files && data.files.length > 0 ) {
 				lines.push( 'files:' );
@@ -954,7 +973,66 @@
 		} );
 	}
 
-	// -- Video preview --
+	// -- Video preview & trim --
+
+	function formatTime( seconds ) {
+		if ( seconds === null || seconds === undefined || seconds === '' ) {
+			return '';
+		}
+		var s = parseFloat( seconds );
+		if ( isNaN( s ) ) {
+			return '';
+		}
+		var m = Math.floor( s / 60 );
+		var sec = s - m * 60;
+		return m + ':' + ( sec < 10 ? '0' : '' ) + sec.toFixed( 1 );
+	}
+
+	function parseTime( str ) {
+		if ( !str || !str.trim() ) {
+			return null;
+		}
+		str = str.trim();
+		// Accept m:ss.s or just seconds
+		var parts = str.split( ':' );
+		if ( parts.length === 2 ) {
+			return parseFloat( parts[ 0 ] ) * 60 + parseFloat( parts[ 1 ] );
+		}
+		var val = parseFloat( str );
+		return isNaN( val ) ? null : val;
+	}
+
+	function updateTrimPreview() {
+		var preview = el( 'rd-trim-preview' );
+		if ( !preview ) {
+			return;
+		}
+		var video = el( 'rd-video-player' );
+		var startInput = el( 'rd-trim-start' );
+		var endInput = el( 'rd-trim-end' );
+		if ( !startInput || !endInput ) {
+			return;
+		}
+
+		var start = parseTime( startInput.value );
+		var end = parseTime( endInput.value );
+		var duration = video ? video.duration : null;
+
+		var parts = [];
+		if ( start !== null && start > 0 ) {
+			parts.push( 'trimming first ' + formatTime( start ) );
+		}
+		if ( end !== null && duration && end < duration ) {
+			parts.push( 'trimming last ' + formatTime( duration - end ) );
+		}
+		if ( start !== null && end !== null ) {
+			var outputDuration = end - start;
+			if ( outputDuration > 0 ) {
+				parts.push( 'output duration: ' + formatTime( outputDuration ) );
+			}
+		}
+		preview.textContent = parts.length > 0 ? parts.join( ' · ' ) : '';
+	}
 
 	function initVideoPreview() {
 		var video = el( 'rd-video-player' );
@@ -975,6 +1053,10 @@
 			if ( container ) {
 				container.style.display = 'none';
 			}
+			var trimControls = el( 'rd-trim-controls' );
+			if ( trimControls ) {
+				trimControls.style.display = 'none';
+			}
 			return;
 		}
 
@@ -986,6 +1068,35 @@
 			'&timestamp=' + encodeURIComponent( timestamp );
 
 		video.src = src;
+
+		// "Set start" / "Set end" buttons grab current playback position
+		var setStartBtn = el( 'rd-trim-set-start' );
+		var setEndBtn = el( 'rd-trim-set-end' );
+		var startInput = el( 'rd-trim-start' );
+		var endInput = el( 'rd-trim-end' );
+
+		if ( setStartBtn && startInput ) {
+			setStartBtn.addEventListener( 'click', function () {
+				startInput.value = formatTime( video.currentTime );
+				updateTrimPreview();
+			} );
+		}
+		if ( setEndBtn && endInput ) {
+			setEndBtn.addEventListener( 'click', function () {
+				endInput.value = formatTime( video.currentTime );
+				updateTrimPreview();
+			} );
+		}
+		if ( startInput ) {
+			startInput.addEventListener( 'input', updateTrimPreview );
+		}
+		if ( endInput ) {
+			endInput.addEventListener( 'input', updateTrimPreview );
+		}
+
+		// Update preview once video metadata is loaded (to know total duration)
+		video.addEventListener( 'loadedmetadata', updateTrimPreview );
+		updateTrimPreview();
 	}
 
 	// -- Init --
