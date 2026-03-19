@@ -1,6 +1,6 @@
 {
 	"name": "PickiPediaReleases",
-	"version": "1.1.1",
+	"version": "1.2.0",
 	"author": ["CryptoGrass", "Magent"],
 	"url": "https://github.com/cryptograss/pickipedia",
 	"descriptionmsg": "pickipediareleases-desc",
@@ -42,8 +42,10 @@
 	},
 	"SpecialPages": {
 		"Releases": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialReleases",
-		"UploadContent": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialUploadContent",
-		"UploadAlbum": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialUploadAlbum"
+		"DeliverOtherContent": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverOtherContent",
+		"DeliverRecord": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverRecord",
+		"DeliverVideo": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverVideo",
+		"DeliverBlueRailroad": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverBlueRailroad"
 	},
 	"APIModules": {
 		"releaselist": {
@@ -57,7 +59,8 @@
 	},
 	"Hooks": {
 		"LoadExtensionSchemaUpdates": "main",
-		"BeforePageDisplay": "main"
+		"BeforePageDisplay": "main",
+		"PageForms::FormPrinterSetup": "main"
 	},
 	"MessagesDirs": {
 		"PickiPediaReleases": ["i18n"]
@@ -72,13 +75,26 @@
 		"ext.pickipediaReleases.upload.styles": {
 			"styles": ["ext.pickipediaReleases.upload.css"]
 		},
-		"ext.pickipediaReleases.upload": {
-			"scripts": ["ext.pickipediaReleases.upload.js"],
+		"ext.pickipediaReleases.deliverOtherContent": {
+			"scripts": ["ext.pickipediaReleases.deliverOtherContent.js"],
 			"dependencies": ["mediawiki.util"]
 		},
-		"ext.pickipediaReleases.uploadAlbum": {
-			"scripts": ["ext.pickipediaReleases.uploadAlbum.js"],
+		"ext.pickipediaReleases.deliverRecord": {
+			"scripts": ["ext.pickipediaReleases.deliverRecord.js"],
 			"dependencies": ["mediawiki.util", "mediawiki.api"]
+		},
+		"ext.pickipediaReleases.deliverVideo": {
+			"scripts": ["ext.pickipediaReleases.deliverVideo.js"],
+			"dependencies": ["mediawiki.util", "mediawiki.api"]
+		},
+		"ext.pickipediaReleases.deliverBlueRailroad": {
+			"scripts": ["ext.pickipediaReleases.deliverBlueRailroad.js"],
+			"dependencies": ["mediawiki.util", "mediawiki.api"]
+		},
+		"ext.pickipediaReleases.deliveryKidInput": {
+			"scripts": ["ext.pickipediaReleases.deliveryKidInput.js"],
+			"styles": ["ext.pickipediaReleases.upload.css"],
+			"dependencies": ["mediawiki.util"]
 		},
 		"ext.pickipediaReleases.releaseDraft": {
 			"scripts": ["ext.pickipediaReleases.releaseDraft.js"],
@@ -91,14 +107,17 @@
 		"remoteExtPath": "PickiPediaReleases/resources"
 	},
 	"AvailableRights": [
-		"upload-to-delivery-kid"
+		"upload-to-delivery-kid",
+		"finalize-release"
 	],
 	"GroupPermissions": {
 		"sysop": {
-			"upload-to-delivery-kid": true
+			"upload-to-delivery-kid": true,
+			"finalize-release": true
 		},
 		"release": {
-			"upload-to-delivery-kid": true
+			"upload-to-delivery-kid": true,
+			"finalize-release": true
 		}
 	},
 	"config": {

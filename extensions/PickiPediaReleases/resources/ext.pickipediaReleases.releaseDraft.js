@@ -101,33 +101,36 @@
 
 	function collectFormData() {
 		var data = JSON.parse( JSON.stringify( draftData ) );
-		// Draft type is set by the creating Special page's JS:
-		//   Special:UploadAlbum  → type: record   (ext.pickipediaReleases.uploadAlbum.js)
-		//   Special:UploadContent → type: other    (ext.pickipediaReleases.upload.js)
-		//   Blue Railroad bot    → type: blue-railroad
+		// data.type comes from the ReleaseDraft YAML — it was set when this
+		// page was first created by one of the Deliver pages or the bot:
+		//   Special:DeliverRecord       → type: record
+		//   Special:DeliverOtherContent → type: other
+		//   Special:DeliverVideo        → type: video
+		//   Blue Railroad bot           → type: blue-railroad
+		// 'album' is a legacy alias for 'record'.
 		var draftType = data.type || 'record';
 
 		if ( draftType === 'record' || draftType === 'album' ) {
 			// Album/record fields
-			var titleEl = el( 'rd-album-title' );
-			var artistEl = el( 'rd-artist' );
-			var versionEl = el( 'rd-version' );
-			var descEl = el( 'rd-description' );
+			var albumTitleEl = el( 'rd-album-title' );
+			var albumArtistEl = el( 'rd-artist' );
+			var albumVersionEl = el( 'rd-version' );
+			var albumDescriptionEl = el( 'rd-description' );
 
 			if ( !data.album ) {
 				data.album = {};
 			}
-			if ( titleEl ) {
-				data.album.title = titleEl.value;
+			if ( albumTitleEl ) {
+				data.album.title = albumTitleEl.value;
 			}
-			if ( artistEl ) {
-				data.album.artist = artistEl.value;
+			if ( albumArtistEl ) {
+				data.album.artist = albumArtistEl.value;
 			}
-			if ( versionEl ) {
-				data.album.version = versionEl.value;
+			if ( albumVersionEl ) {
+				data.album.version = albumVersionEl.value;
 			}
-			if ( descEl ) {
-				data.album.description = descEl.value;
+			if ( albumDescriptionEl ) {
+				data.album.description = albumDescriptionEl.value;
 			}
 
 			// Tracks — collect in current DOM order (respects drag reorder)
@@ -152,8 +155,38 @@
 				} );
 			} );
 			data.tracks = tracks;
+		} else if ( draftType === 'video' ) {
+			// Video fields
+			if ( !data.content ) {
+				data.content = {};
+			}
+			var videoTitleEl = el( 'rd-content-title' );
+			var videoDescriptionEl = el( 'rd-content-description' );
+			var videoFileTypeEl = el( 'rd-content-file-type' );
+			var videoVenueEl = el( 'rd-video-venue' );
+			var videoPerformersEl = el( 'rd-video-performers' );
+
+			if ( videoTitleEl ) {
+				data.content.title = videoTitleEl.value;
+			}
+			if ( videoDescriptionEl ) {
+				data.content.description = videoDescriptionEl.value;
+			}
+			if ( videoFileTypeEl ) {
+				data.content.file_type = videoFileTypeEl.value;
+			}
+			if ( videoVenueEl ) {
+				data.content.venue = videoVenueEl.value;
+			}
+			if ( videoPerformersEl ) {
+				data.content.performers = videoPerformersEl.value.split( ',' ).map( function ( s ) {
+					return s.trim();
+				} ).filter( function ( s ) {
+					return s.length > 0;
+				} );
+			}
 		} else {
-			// Content fields
+			// Content fields (other, blue-railroad, etc.)
 			if ( !data.content ) {
 				data.content = {};
 			}
@@ -176,10 +209,16 @@
 			}
 		}
 
-		// Blockheight
-		var bhEl = el( 'rd-blockheight' );
-		if ( bhEl && bhEl.value.trim() ) {
-			data.blockheight = parseInt( bhEl.value.trim(), 10 ) || null;
+		// Blockheight (content time — user-editable)
+		var blockheightEl = el( 'rd-blockheight' );
+		if ( blockheightEl && blockheightEl.value.trim() ) {
+			data.blockheight = parseInt( blockheightEl.value.trim(), 10 ) || null;
+		}
+
+		// Upload blockheight (auto-captured, preserved as-is)
+		var uploadBlockheightEl = el( 'rd-upload-blockheight' );
+		if ( uploadBlockheightEl && uploadBlockheightEl.value ) {
+			data.upload_blockheight = parseInt( uploadBlockheightEl.value, 10 ) || null;
 		}
 
 		return data;
@@ -242,11 +281,11 @@
 		var draftType = data.type || 'record';
 
 		// Envelope — common to all draft types
-		lines.push( 'draft_id: ' + quote( data.draft_id || '' ) );
-		lines.push( 'type: ' + quote( draftType ) );
-		lines.push( 'source: ' + quote( data.source || '' ) );
-		lines.push( 'commit: ' + quote( data.commit || '' ) );
-		lines.push( 'uploader: ' + quote( data.uploader || '' ) );
+		lines.push( 'draft_id: ' + quoteYamlValue( data.draft_id || '' ) );
+		lines.push( 'type: ' + quoteYamlValue( draftType ) );
+		lines.push( 'source: ' + quoteYamlValue( data.source || '' ) );
+		lines.push( 'commit: ' + quoteYamlValue( data.commit || '' ) );
+		lines.push( 'uploader: ' + quoteYamlValue( data.uploader || '' ) );
 
 		if ( data.blockheight ) {
 			lines.push( 'blockheight: ' + data.blockheight );
@@ -254,22 +293,26 @@
 			lines.push( 'blockheight: null' );
 		}
 
+		if ( data.upload_blockheight ) {
+			lines.push( 'upload_blockheight: ' + data.upload_blockheight );
+		}
+
 		// Type-specific payload
 		if ( draftType === 'record' || draftType === 'album' ) {
 			lines.push( 'album:' );
 			var album = data.album || {};
-			lines.push( '    title: ' + quote( album.title || '' ) );
-			lines.push( '    artist: ' + quote( album.artist || '' ) );
-			lines.push( '    version: ' + quote( album.version || '' ) );
-			lines.push( '    description: ' + quote( album.description || '' ) );
+			lines.push( '    title: ' + quoteYamlValue( album.title || '' ) );
+			lines.push( '    artist: ' + quoteYamlValue( album.artist || '' ) );
+			lines.push( '    version: ' + quoteYamlValue( album.version || '' ) );
+			lines.push( '    description: ' + quoteYamlValue( album.description || '' ) );
 
 			lines.push( 'tracks:' );
 			( data.tracks || [] ).forEach( function ( track ) {
 				lines.push( '    -' );
-				lines.push( '        filename: ' + quote( track.filename || '' ) );
-				lines.push( '        title: ' + quote( track.title || '' ) );
+				lines.push( '        filename: ' + quoteYamlValue( track.filename || '' ) );
+				lines.push( '        title: ' + quoteYamlValue( track.title || '' ) );
 				if ( track.format ) {
-					lines.push( '        format: ' + quote( track.format ) );
+					lines.push( '        format: ' + quoteYamlValue( track.format ) );
 				}
 				if ( track.duration ) {
 					lines.push( '        duration: ' + track.duration );
@@ -286,23 +329,104 @@
 					lines.push( '        metadata: ""' );
 				}
 			} );
-		} else {
-			// Content (and future types)
+		} else if ( draftType === 'video' ) {
+			// Video type
 			lines.push( 'content:' );
-			var content = data.content || {};
-			lines.push( '    title: ' + quote( content.title || '' ) );
-			lines.push( '    description: ' + quote( content.description || '' ) );
-			lines.push( '    file_type: ' + quote( content.file_type || '' ) );
-			lines.push( '    subsequent_to: ' + quote( content.subsequent_to || '' ) );
+			var vidContent = data.content || {};
+			lines.push( '    title: ' + quoteYamlValue( vidContent.title || '' ) );
+			lines.push( '    description: ' + quoteYamlValue( vidContent.description || '' ) );
+			lines.push( '    file_type: ' + quoteYamlValue( vidContent.file_type || '' ) );
+			lines.push( '    venue: ' + quoteYamlValue( vidContent.venue || '' ) );
+			lines.push( '    performers:' );
+			( vidContent.performers || [] ).forEach( function ( p ) {
+				lines.push( '        - ' + quoteYamlValue( p ) );
+			} );
 
 			if ( data.files && data.files.length > 0 ) {
 				lines.push( 'files:' );
 				data.files.forEach( function ( f ) {
 					lines.push( '    -' );
-					lines.push( '        original_filename: ' + quote( f.original_filename || '' ) );
-					lines.push( '        media_type: ' + quote( f.media_type || '' ) );
+					lines.push( '        original_filename: ' + quoteYamlValue( f.original_filename || '' ) );
+					lines.push( '        media_type: ' + quoteYamlValue( f.media_type || '' ) );
 					if ( f.format ) {
-						lines.push( '        format: ' + quote( f.format ) );
+						lines.push( '        format: ' + quoteYamlValue( f.format ) );
+					}
+					if ( f.duration_seconds ) {
+						lines.push( '        duration_seconds: ' + f.duration_seconds );
+					}
+					if ( f.width ) {
+						lines.push( '        width: ' + f.width );
+					}
+					if ( f.height ) {
+						lines.push( '        height: ' + f.height );
+					}
+					if ( f.size_bytes ) {
+						lines.push( '        size_bytes: ' + f.size_bytes );
+					}
+				} );
+			}
+		} else if ( draftType === 'blue-railroad' ) {
+			// Blue Railroad — preserve all content fields through save
+			lines.push( 'content:' );
+			var brContent = data.content || {};
+			lines.push( '    exercise: ' + quoteYamlValue( brContent.exercise || '' ) );
+			lines.push( '    file_type: ' + quoteYamlValue( brContent.file_type || 'video' ) );
+			if ( brContent.venue ) {
+				lines.push( '    venue: ' + quoteYamlValue( brContent.venue ) );
+			}
+			if ( brContent.recorder ) {
+				lines.push( '    recorder: ' + quoteYamlValue( brContent.recorder ) );
+			}
+			if ( brContent.notes ) {
+				lines.push( '    notes: ' + quoteYamlValue( brContent.notes ) );
+			}
+			if ( brContent.participants && brContent.participants.length > 0 ) {
+				lines.push( '    participants:' );
+				brContent.participants.forEach( function ( p ) {
+					lines.push( '        - ' + quoteYamlValue( p ) );
+				} );
+			}
+
+			if ( data.files && data.files.length > 0 ) {
+				lines.push( 'files:' );
+				data.files.forEach( function ( f ) {
+					lines.push( '    -' );
+					lines.push( '        original_filename: ' + quoteYamlValue( f.original_filename || '' ) );
+					lines.push( '        media_type: ' + quoteYamlValue( f.media_type || '' ) );
+					if ( f.format ) {
+						lines.push( '        format: ' + quoteYamlValue( f.format ) );
+					}
+					if ( f.duration_seconds ) {
+						lines.push( '        duration_seconds: ' + f.duration_seconds );
+					}
+					if ( f.width ) {
+						lines.push( '        width: ' + f.width );
+					}
+					if ( f.height ) {
+						lines.push( '        height: ' + f.height );
+					}
+					if ( f.size_bytes ) {
+						lines.push( '        size_bytes: ' + f.size_bytes );
+					}
+				} );
+			}
+		} else {
+			// Content (other, etc.)
+			lines.push( 'content:' );
+			var content = data.content || {};
+			lines.push( '    title: ' + quoteYamlValue( content.title || '' ) );
+			lines.push( '    description: ' + quoteYamlValue( content.description || '' ) );
+			lines.push( '    file_type: ' + quoteYamlValue( content.file_type || '' ) );
+			lines.push( '    subsequent_to: ' + quoteYamlValue( content.subsequent_to || '' ) );
+
+			if ( data.files && data.files.length > 0 ) {
+				lines.push( 'files:' );
+				data.files.forEach( function ( f ) {
+					lines.push( '    -' );
+					lines.push( '        original_filename: ' + quoteYamlValue( f.original_filename || '' ) );
+					lines.push( '        media_type: ' + quoteYamlValue( f.media_type || '' ) );
+					if ( f.format ) {
+						lines.push( '        format: ' + quoteYamlValue( f.format ) );
 					}
 					if ( f.duration_seconds ) {
 						lines.push( '        duration_seconds: ' + f.duration_seconds );
@@ -323,12 +447,23 @@
 		return lines.join( '\n' ) + '\n';
 	}
 
-	function quote( val ) {
+	/**
+	 * Escape a string value for safe inclusion in hand-built YAML.
+	 *
+	 * MediaWiki's ResourceLoader doesn't ship a YAML library, so the
+	 * Deliver/ReleaseDraft JS modules construct YAML strings manually.
+	 * This function wraps values in double quotes when they contain
+	 * characters that YAML would otherwise interpret as syntax
+	 * (colons, brackets, anchors, etc.) or when the value has
+	 * leading/trailing whitespace.
+	 *
+	 * Empty/null values become "" (empty YAML string).
+	 */
+	function quoteYamlValue( val ) {
 		if ( val === '' || val === null || val === undefined ) {
 			return '""';
 		}
 		val = String( val );
-		// Quote if contains special YAML chars
 		if ( /[:#\[\]{}&*!|>'"%@`\n]/.test( val ) || val.trim() !== val ) {
 			return '"' + val.replace( /\\/g, '\\\\' ).replace( /"/g, '\\"' ).replace( /\n/g, '\\n' ) + '"';
 		}
@@ -352,6 +487,11 @@
 			return;
 		}
 
+		// Hide finalize button if user lacks finalize-release permission
+		if ( !mw.config.get( 'wgCanFinalize' ) ) {
+			finalizeBtn.style.display = 'none';
+		}
+
 		finalizeBtn.addEventListener( 'click', function () {
 			var data = collectFormData();
 			var draftId = data.draft_id;
@@ -369,8 +509,15 @@
 				return;
 			}
 
+			// Use finalize token for finalization (requires finalize-release permission)
+			var finalizeToken = mw.config.get( 'wgFinalizeToken' );
+			if ( !finalizeToken ) {
+				showFinalizeError( 'You do not have permission to finalize releases.' );
+				return;
+			}
+
 			var authHeaders = {
-				'X-Upload-Token': mw.config.get( 'wgUploadToken' ),
+				'X-Upload-Token': finalizeToken,
 				'X-Upload-User': mw.config.get( 'wgUploadUser' ),
 				'X-Upload-Timestamp': String( mw.config.get( 'wgUploadTimestamp' ) )
 			};

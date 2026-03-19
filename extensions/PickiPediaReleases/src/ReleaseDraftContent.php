@@ -90,6 +90,11 @@ class ReleaseDraftContent extends TextContent {
 		return $bh !== null ? (int)$bh : null;
 	}
 
+	public function getUploadBlockheight(): ?int {
+		$bh = $this->getData()['upload_blockheight'] ?? null;
+		return $bh !== null ? (int)$bh : null;
+	}
+
 	public function getAlbumData(): array {
 		return $this->getData()['album'] ?? [];
 	}
@@ -116,6 +121,14 @@ class ReleaseDraftContent extends TextContent {
 
 	public function getContentTitle(): ?string {
 		return $this->getContentData()['title'] ?? null;
+	}
+
+	public function getVenue(): ?string {
+		return $this->getContentData()['venue'] ?? null;
+	}
+
+	public function getPerformers(): array {
+		return $this->getContentData()['performers'] ?? [];
 	}
 
 	// -- AbstractContent methods --
@@ -173,6 +186,12 @@ class ReleaseDraftContent extends TextContent {
 			}
 			if ( !empty( $content['description'] ) ) {
 				$parts[] = $content['description'];
+			}
+			if ( !empty( $content['venue'] ) ) {
+				$parts[] = $content['venue'];
+			}
+			foreach ( $content['performers'] ?? [] as $performer ) {
+				$parts[] = $performer;
 			}
 		}
 

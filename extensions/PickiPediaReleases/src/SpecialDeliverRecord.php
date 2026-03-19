@@ -1,6 +1,6 @@
 <?php
 /**
- * Special page for uploading albums directly to delivery-kid.
+ * Special page for delivering records (albums) via delivery-kid.
  *
  * Wiki login is the auth layer. PHP generates a short-lived HMAC token.
  * JavaScript uploads files directly to delivery-kid — no bytes pass through PHP.
@@ -19,10 +19,10 @@ namespace MediaWiki\Extension\PickiPediaReleases;
 use MediaWiki\Html\Html;
 use MediaWiki\SpecialPage\SpecialPage;
 
-class SpecialUploadAlbum extends SpecialPage {
+class SpecialDeliverRecord extends SpecialPage {
 
 	public function __construct() {
-		parent::__construct( 'UploadAlbum', 'upload-to-delivery-kid' );
+		parent::__construct( 'DeliverRecord' );
 	}
 
 	/**
@@ -30,12 +30,12 @@ class SpecialUploadAlbum extends SpecialPage {
 	 */
 	public function execute( $par ): void {
 		$this->setHeaders();
-		$this->checkPermissions();
+		$this->requireNamedUser();
 		$out = $this->getOutput();
 		$user = $this->getUser();
 
 		$out->addModuleStyles( [ 'ext.pickipediaReleases.upload.styles' ] );
-		$out->addModules( [ 'ext.pickipediaReleases.uploadAlbum' ] );
+		$out->addModules( [ 'ext.pickipediaReleases.deliverRecord' ] );
 
 		// Generate HMAC upload token
 		$apiKey = $this->getConfig()->get( 'DeliveryKidApiKey' );
@@ -44,16 +44,24 @@ class SpecialUploadAlbum extends SpecialPage {
 		$timestamp = (int)( microtime( true ) * 1000 );
 		$token = hash_hmac( 'sha256', "upload:{$username}:{$timestamp}", $apiKey );
 
+		// Estimate current Ethereum block from wall-clock time
+		// (post-merge: 12s slots from the merge block)
+		$mergeBlock = 15537394;
+		$mergeTimestamp = 1663224179;
+		$slotTime = 12;
+		$uploadBlockheight = $mergeBlock + intdiv( time() - $mergeTimestamp, $slotTime );
+
 		// Pass config to JS — token is short-lived, not a persistent secret
 		$out->addJsConfigVars( [
 			'wgDeliveryKidUrl' => $apiUrl,
 			'wgUploadToken' => $token,
 			'wgUploadUser' => $username,
 			'wgUploadTimestamp' => $timestamp,
+			'wgUploadBlockheight' => $uploadBlockheight,
 		] );
 
 		// Editable intro text
-		$this->addWikitextMessage( 'special-uploadalbum-header' );
+		$this->addWikitextMessage( 'special-deliverrecord-header' );
 
 		$out->addHTML( $this->renderPageStructure() );
 	}

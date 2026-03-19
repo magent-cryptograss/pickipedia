@@ -106,6 +106,8 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		// Type-specific form
 		if ( $type === 'record' || $type === 'album' ) {
 			$html .= $this->renderAlbumForm( $data, $status );
+		} elseif ( $type === 'video' ) {
+			$html .= $this->renderVideoForm( $data, $status );
 		} else {
 			$html .= $this->renderGenericForm( $data, $status );
 		}
@@ -405,6 +407,96 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		return $html;
 	}
 
+	private function renderVideoForm( array $data, string $status ): string {
+		$content = $data['content'] ?? [];
+		$files = $data['files'] ?? [];
+		$disabled = $status !== 'draft' ? ' disabled' : '';
+
+		$html = Html::openElement( 'div', [ 'class' => 'rd-video-form', 'id' => 'rd-video-form' ] );
+		$html .= Html::element( 'h3', [], 'Video Info' );
+
+		$html .= Html::openElement( 'div', [ 'class' => 'uc-metadata-form' ] );
+
+		// Title
+		$html .= $this->renderField( 'rd-content-title', 'Title',
+			$content['title'] ?? '', 'text', $disabled );
+
+		// Venue
+		$html .= $this->renderField( 'rd-video-venue', 'Venue',
+			$content['venue'] ?? '', 'text', $disabled );
+
+		// Performers
+		$performers = $content['performers'] ?? [];
+		$performersStr = implode( ', ', $performers );
+		$html .= Html::openElement( 'div', [ 'class' => 'uc-field' ] );
+		$html .= Html::element( 'label', [ 'for' => 'rd-video-performers' ], 'Performers' );
+		$html .= Html::element( 'input', [
+			'type' => 'text',
+			'id' => 'rd-video-performers',
+			'class' => 'cdx-text-input__input',
+			'value' => $performersStr,
+			'placeholder' => 'Comma-separated names',
+			'disabled' => $disabled ? true : false,
+		] );
+		$html .= Html::closeElement( 'div' );
+
+		// Description
+		$html .= Html::openElement( 'div', [ 'class' => 'uc-field' ] );
+		$html .= Html::element( 'label', [ 'for' => 'rd-content-description' ], 'Description' );
+		$html .= Html::element( 'textarea', [
+			'id' => 'rd-content-description',
+			'class' => 'cdx-text-input__input',
+			'rows' => 3,
+			'placeholder' => 'Optional description',
+			'disabled' => $status !== 'draft' ? true : false,
+		], $content['description'] ?? '' );
+		$html .= Html::closeElement( 'div' );
+
+		// File type override
+		$html .= $this->renderField( 'rd-content-file-type', 'File type override',
+			$content['file_type'] ?? '', 'text', $disabled );
+
+		$html .= Html::closeElement( 'div' );
+
+		// File info table — media_type values ("audio", "video", "image", "other")
+		// are set by delivery-kid's analyze.detect_media_type() during upload,
+		// then written into ReleaseDraft YAML by the Deliver page's JS.
+		if ( !empty( $files ) ) {
+			$html .= Html::element( 'h3', [], 'Files' );
+			$html .= Html::openElement( 'table', [ 'class' => 'wikitable' ] );
+			$html .= '<tr><th>File</th><th>Type</th><th>Format</th><th>Size</th></tr>';
+
+			foreach ( $files as $f ) {
+				$html .= Html::openElement( 'tr' );
+				$html .= Html::element( 'td', [], $f['original_filename'] ?? '' );
+				$html .= Html::element( 'td', [], $f['media_type'] ?? '' );
+				$html .= Html::element( 'td', [], $f['format'] ?? '' );
+				$sizeStr = !empty( $f['size_bytes'] ) ? $this->formatSize( (int)$f['size_bytes'] ) : '';
+				$html .= Html::element( 'td', [], $sizeStr );
+				$html .= Html::closeElement( 'tr' );
+
+				if ( !empty( $f['width'] ) && !empty( $f['height'] ) ) {
+					$detail = $f['width'] . 'x' . $f['height'];
+					if ( !empty( $f['video_codec'] ) ) {
+						$detail .= ' · ' . $f['video_codec'];
+					}
+					if ( !empty( $f['audio_codec'] ) ) {
+						$detail .= ' · ' . $f['audio_codec'];
+					}
+					$html .= '<tr><td></td><td colspan="3">' . htmlspecialchars( $detail ) . '</td></tr>';
+				}
+			}
+
+			$html .= Html::closeElement( 'table' );
+
+			$html .= Html::rawElement( 'p', [ 'class' => 'uc-hls-info' ],
+				'Video will be transcoded to AV1 HLS (royalty-free) automatically on finalization.' );
+		}
+
+		$html .= Html::closeElement( 'div' );
+		return $html;
+	}
+
 	private function renderBlockheightField( array $data ): string {
 		$blockheight = $data['blockheight'] ?? '';
 
@@ -438,6 +530,21 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 			'class' => 'cdx-text-input__input rd-date-input',
 		] );
 		$html .= Html::closeElement( 'div' );
+
+		// Upload blockheight — auto-captured at upload time, read-only
+		$uploadBlockheight = $data['upload_blockheight'] ?? null;
+		if ( $uploadBlockheight ) {
+			$html .= Html::openElement( 'div', [ 'class' => 'uc-field' ] );
+			$html .= Html::element( 'label', [], 'Upload block height' );
+			$html .= Html::element( 'span', [ 'class' => 'rd-upload-blockheight' ],
+				(string)$uploadBlockheight );
+			$html .= Html::element( 'input', [
+				'type' => 'hidden',
+				'id' => 'rd-upload-blockheight',
+				'value' => $uploadBlockheight,
+			] );
+			$html .= Html::closeElement( 'div' );
+		}
 
 		$html .= Html::closeElement( 'div' );
 		$html .= Html::closeElement( 'div' );

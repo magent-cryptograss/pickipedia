@@ -1,10 +1,8 @@
 /**
- * Upload Content — direct upload to delivery-kid from browser.
+ * Deliver Record — direct upload to delivery-kid from browser.
  *
  * After upload+analysis, creates a ReleaseDraft wiki page and redirects there.
  * The ReleaseDraft namespace handles review, metadata editing, and finalization.
- *
- * Same pattern as uploadAlbum.js, but creates type=other drafts.
  */
 ( function () {
 	'use strict';
@@ -39,24 +37,13 @@
 		return size.toFixed( 1 ) + ' ' + units[ i ];
 	}
 
-	function quote( val ) {
-		if ( val === '' || val === null || val === undefined ) {
-			return '""';
-		}
-		val = String( val );
-		if ( /[:#\[\]{}&*!|>'"%@`\n]/.test( val ) || val.trim() !== val ) {
-			return '"' + val.replace( /\\/g, '\\\\' ).replace( /"/g, '\\"' ).replace( /\n/g, '\\n' ) + '"';
-		}
-		return val;
-	}
-
 	// -- File Upload --
 
 	function initUploadStep() {
-		var dropzone = el( 'uc-dropzone' );
-		var fileInput = el( 'uc-file-input' );
-		var fileList = el( 'uc-file-list' );
-		var uploadBtn = el( 'uc-upload-btn' );
+		var dropzone = el( 'ua-dropzone' );
+		var fileInput = el( 'ua-file-input' );
+		var fileList = el( 'ua-file-list' );
+		var uploadBtn = el( 'ua-upload-btn' );
 		var selectedFiles = [];
 
 		dropzone.addEventListener( 'click', function () {
@@ -121,13 +108,13 @@
 	}
 
 	function doUpload( files ) {
-		var uploadBtn = el( 'uc-upload-btn' );
-		var progressBar = el( 'uc-upload-progress' );
+		var uploadBtn = el( 'ua-upload-btn' );
+		var progressBar = el( 'ua-upload-progress' );
 		var progressFill = progressBar.querySelector( '.uc-progress-fill' );
 
 		uploadBtn.disabled = true;
 		progressBar.style.display = '';
-		setStatus( 'uc-upload-status', 'Uploading ' + files.length + ' file(s)...', '' );
+		setStatus( 'ua-upload-status', 'Uploading ' + files.length + ' file(s)...', '' );
 
 		var formData = new FormData();
 		files.forEach( function ( file ) {
@@ -135,9 +122,8 @@
 		} );
 
 		var xhr = new XMLHttpRequest();
-		xhr.open( 'POST', API_URL + '/draft-content' );
+		xhr.open( 'POST', API_URL + '/draft-album' );
 
-		// Set auth headers
 		Object.keys( AUTH_HEADERS ).forEach( function ( key ) {
 			xhr.setRequestHeader( key, AUTH_HEADERS[ key ] );
 		} );
@@ -146,7 +132,7 @@
 			if ( e.lengthComputable ) {
 				var pct = Math.round( ( e.loaded / e.total ) * 100 );
 				progressFill.style.width = pct + '%';
-				setStatus( 'uc-upload-status',
+				setStatus( 'ua-upload-status',
 					'Uploading... ' + formatSize( e.loaded ) + ' / ' + formatSize( e.total ) +
 					' (' + pct + '%)', '' );
 			}
@@ -172,22 +158,22 @@
 				} catch ( e ) {
 					errMsg = xhr.status + ' ' + xhr.statusText + ': ' + xhr.responseText.slice( 0, 200 );
 				}
-				setStatus( 'uc-upload-status',
+				setStatus( 'ua-upload-status',
 					'Upload failed (' + xhr.status + '): ' + errMsg, 'error' );
 				uploadBtn.disabled = false;
 				return;
 			}
 
 			var draft = JSON.parse( xhr.responseText );
-			setStatus( 'uc-upload-status',
-				'Draft created. ' + draft.files.length + ' file(s) analyzed. Creating draft page...', 'success' );
+			setStatus( 'ua-upload-status',
+				'Draft created. ' + draft.files.length + ' track(s) analyzed. Creating draft page...', 'success' );
 
 			createReleaseDraftPage( draft );
 		} );
 
 		xhr.addEventListener( 'error', function () {
 			progressBar.style.display = 'none';
-			setStatus( 'uc-upload-status', 'Network error during upload.', 'error' );
+			setStatus( 'ua-upload-status', 'Network error during upload.', 'error' );
 			uploadBtn.disabled = false;
 		} );
 
@@ -200,76 +186,102 @@
 		var draftId = draft.draft_id;
 		var pageName = 'ReleaseDraft:' + draftId;
 
-		var yaml = buildContentYaml( draftId, draft );
+		// Build initial YAML from delivery-kid analysis
+		var tracks = ( draft.files || [] ).map( function ( f ) {
+			var title = f.detected_title || f.original_filename.replace( /\.[^.]+$/, '' );
+			return {
+				filename: f.original_filename,
+				title: title,
+				format: f.format || '',
+				duration: f.duration_seconds || null,
+				size_bytes: f.size_bytes || null,
+				metadata: ''
+			};
+		} );
+
+		var yaml = buildAlbumYaml( draftId, draft.commit || 'unknown', tracks );
 
 		var api = new mw.Api();
 		api.postWithEditToken( {
 			action: 'edit',
 			title: pageName,
 			text: yaml,
-			summary: 'New content draft: ' + draft.files.length + ' file(s) uploaded',
+			summary: 'New album draft: ' + draft.files.length + ' tracks uploaded',
 			createonly: true
 		} ).then( function () {
+			// Redirect to the new draft page
 			window.location.href = mw.util.getUrl( pageName );
 		} ).fail( function ( code, result ) {
 			if ( code === 'articleexists' ) {
+				// Draft page already exists (maybe re-upload?) — just redirect
 				window.location.href = mw.util.getUrl( pageName );
 			} else {
-				setStatus( 'uc-upload-status',
+				setStatus( 'ua-upload-status',
 					'Failed to create draft page: ' + ( result.error ? result.error.info : code ), 'error' );
-				el( 'uc-upload-btn' ).disabled = false;
+				el( 'ua-upload-btn' ).disabled = false;
 			}
 		} );
 	}
 
-	function buildContentYaml( draftId, draft ) {
+	function buildAlbumYaml( draftId, commit, tracks ) {
 		var lines = [];
 		lines.push( 'draft_id: ' + draftId );
-		lines.push( 'type: other' );
-		lines.push( 'source: special-upload-content' );
-		lines.push( 'commit: ' + ( draft.commit || 'unknown' ) );
-		lines.push( 'uploader: ' + quote( mw.config.get( 'wgUploadUser' ) || '' ) );
+		lines.push( 'type: record' );
+		lines.push( 'source: special-deliver-record' );
+		lines.push( 'commit: ' + commit );
+		lines.push( 'uploader: ' + quoteYamlValue( mw.config.get( 'wgUploadUser' ) || '' ) );
 		lines.push( 'blockheight: null' );
-		lines.push( 'content:' );
+		var uploadBh = mw.config.get( 'wgUploadBlockheight' );
+		if ( uploadBh ) {
+			lines.push( 'upload_blockheight: ' + uploadBh );
+		}
+		lines.push( 'album:' );
 		lines.push( '    title: ""' );
+		lines.push( '    artist: ""' );
+		lines.push( '    version: ""' );
 		lines.push( '    description: ""' );
-		lines.push( '    file_type: ""' );
-		lines.push( '    subsequent_to: ""' );
-		lines.push( 'files:' );
+		lines.push( 'tracks:' );
 
-		( draft.files || [] ).forEach( function ( f ) {
+		tracks.forEach( function ( track ) {
 			lines.push( '    -' );
-			lines.push( '        original_filename: ' + quote( f.original_filename ) );
-			lines.push( '        media_type: ' + quote( f.media_type || '' ) );
-			lines.push( '        format: ' + quote( f.format || '' ) );
-			if ( f.duration_seconds ) {
-				lines.push( '        duration_seconds: ' + f.duration_seconds );
+			lines.push( '        filename: ' + quoteYamlValue( track.filename ) );
+			lines.push( '        title: ' + quoteYamlValue( track.title ) );
+			if ( track.format ) {
+				lines.push( '        format: ' + quoteYamlValue( track.format ) );
 			}
-			if ( f.width ) {
-				lines.push( '        width: ' + f.width );
+			if ( track.duration ) {
+				lines.push( '        duration: ' + track.duration );
 			}
-			if ( f.height ) {
-				lines.push( '        height: ' + f.height );
+			if ( track.size_bytes ) {
+				lines.push( '        size_bytes: ' + track.size_bytes );
 			}
-			if ( f.video_codec ) {
-				lines.push( '        video_codec: ' + quote( f.video_codec ) );
-			}
-			if ( f.audio_codec ) {
-				lines.push( '        audio_codec: ' + quote( f.audio_codec ) );
-			}
-			if ( f.size_bytes ) {
-				lines.push( '        size_bytes: ' + f.size_bytes );
-			}
+			lines.push( '        metadata: ""' );
 		} );
 
 		return lines.join( '\n' ) + '\n';
+	}
+
+	/**
+	 * Escape a string for safe inclusion in hand-built YAML.
+	 * Wraps in double quotes if the value contains YAML-special characters.
+	 * No YAML library is available in ResourceLoader, so we do this manually.
+	 */
+	function quoteYamlValue( val ) {
+		if ( val === '' || val === null || val === undefined ) {
+			return '""';
+		}
+		val = String( val );
+		if ( /[:#\[\]{}&*!|>'"%@`\n]/.test( val ) || val.trim() !== val ) {
+			return '"' + val.replace( /\\/g, '\\\\' ).replace( /"/g, '\\"' ).replace( /\n/g, '\\n' ) + '"';
+		}
+		return val;
 	}
 
 	// -- Init --
 
 	function init() {
 		if ( !API_URL ) {
-			el( 'uc-step-upload' ).innerHTML =
+			el( 'ua-step-upload' ).innerHTML =
 				'<p class="uc-status uc-status-error">Delivery Kid URL not configured.</p>';
 			return;
 		}

@@ -136,8 +136,9 @@ $wgGroupPermissions['release']['edit'] = true;
 $wgNamespaceProtection[3004] = ['release-edit'];
 $wgGroupPermissions['release']['release-edit'] = true;
 
-# Restrict ReleaseDraft namespace (3006) to users with upload-to-delivery-kid permission
-$wgNamespaceProtection[3006] = ['upload-to-delivery-kid'];
+# ReleaseDraft namespace (3006) is readable/editable by all logged-in users.
+# Finalization is gated by HMAC tokens (only generated for finalize-release users).
+# No namespace protection needed — anonymous editing is already disabled wiki-wide.
 
 # Make release-edit available as a BotPasswords grant
 $wgGrantPermissions['release-edit']['release-edit'] = true;
