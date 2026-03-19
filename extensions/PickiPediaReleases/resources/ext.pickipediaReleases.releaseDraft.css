@@ -265,6 +265,54 @@
 	border-radius: 4px;
 }
 
+/* Trim controls */
+.rd-trim-controls {
+	margin: 0.75em 0 1.5em;
+	max-width: 800px;
+}
+
+.rd-trim-controls h4 {
+	margin: 0 0 0.5em;
+	font-size: 0.95em;
+}
+
+.rd-trim-row {
+	display: flex;
+	gap: 1.5em;
+	flex-wrap: wrap;
+}
+
+.rd-trim-field {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+}
+
+.rd-trim-field label {
+	font-weight: bold;
+	font-size: 0.9em;
+	color: #54595d;
+}
+
+.rd-trim-input {
+	width: 5em;
+	text-align: center;
+	font-family: monospace;
+}
+
+.rd-trim-set-btn {
+	font-size: 0.85em;
+	padding: 0.25em 0.6em;
+	cursor: pointer;
+}
+
+.rd-trim-preview {
+	margin-top: 0.5em;
+	font-size: 0.85em;
+	color: #54595d;
+	font-style: italic;
+}
+
 /* Raw YAML toggle */
 .release-raw-yaml {
 	margin-top: 2em;
