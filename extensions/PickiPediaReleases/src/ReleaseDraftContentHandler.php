@@ -489,6 +489,27 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 
 			$html .= Html::closeElement( 'table' );
 
+			// Embed video player for preview (JS sets src with auth query params)
+			$draftId = $data['draft_id'] ?? '';
+			foreach ( $files as $f ) {
+				if ( ( $f['media_type'] ?? '' ) === 'video' && $draftId ) {
+					$html .= Html::rawElement( 'div', [
+						'class' => 'rd-video-preview',
+						'id' => 'rd-video-preview',
+					],
+						Html::element( 'video', [
+							'id' => 'rd-video-player',
+							'class' => 'rd-video-player',
+							'controls' => true,
+							'preload' => 'metadata',
+							'data-draft-id' => $draftId,
+							'data-filename' => $f['original_filename'] ?? '',
+						] )
+					);
+					break; // Only embed first video
+				}
+			}
+
 			$html .= Html::rawElement( 'p', [ 'class' => 'uc-hls-info' ],
 				'Video will be transcoded to AV1 HLS (royalty-free) automatically on finalization.' );
 		}
