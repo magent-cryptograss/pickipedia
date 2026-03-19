@@ -382,6 +382,9 @@
 					if ( f.size_bytes ) {
 						lines.push( '        size_bytes: ' + f.size_bytes );
 					}
+					if ( f.creation_time ) {
+						lines.push( '        creation_time: ' + quoteYamlValue( f.creation_time ) );
+					}
 				} );
 			}
 		} else if ( draftType === 'blue-railroad' ) {
@@ -907,7 +910,7 @@
 			}
 		} );
 
-		// Date picker → estimate block number
+		// Date picker → look up exact block via Etherscan API
 		if ( dateInput ) {
 			dateInput.addEventListener( 'change', function () {
 				var dateStr = dateInput.value;
@@ -915,11 +918,30 @@
 					return;
 				}
 				var ts = Math.floor( new Date( dateStr + 'T12:00:00Z' ).getTime() / 1000 );
+
+				// Show local estimate immediately while API call is in flight
 				var estimated = timestampToBlock( ts );
 				if ( estimated > 0 ) {
 					bhInput.value = estimated;
 					updateBlockDate( estimated );
 				}
+
+				// Fetch exact block from Etherscan
+				fetch( 'https://api.etherscan.io/api?module=block&action=getblocknobytime' +
+					'&timestamp=' + ts + '&closest=before' )
+					.then( function ( r ) { return r.json(); } )
+					.then( function ( resp ) {
+						if ( resp.status === '1' && resp.result ) {
+							var block = parseInt( resp.result, 10 );
+							if ( block > 0 ) {
+								bhInput.value = block;
+								updateBlockDate( block );
+							}
+						}
+					} )
+					.catch( function () {
+						// Local estimate already in place, nothing to do
+					} );
 			} );
 		}
 
@@ -1101,12 +1123,34 @@
 
 	// -- Init --
 
+	function initCreationTimeFallback() {
+		// If the date field is empty and a video file has creation_time
+		// metadata (from the camera/phone), pre-fill the date picker.
+		var dateInput = el( 'rd-date-input' );
+		var bhInput = el( 'rd-blockheight' );
+		if ( !dateInput || dateInput.value || ( bhInput && bhInput.value ) ) {
+			return;
+		}
+		var files = ( draftData && draftData.files ) || [];
+		for ( var i = 0; i < files.length; i++ ) {
+			if ( files[ i ].creation_time ) {
+				var dateStr = files[ i ].creation_time.substring( 0, 10 );
+				if ( /^\d{4}-\d{2}-\d{2}$/.test( dateStr ) ) {
+					dateInput.value = dateStr;
+					dateInput.dispatchEvent( new Event( 'change' ) );
+					break;
+				}
+			}
+		}
+	}
+
 	function init() {
 		initTrackDragReorder();
 		initSaveButton();
 		initFinalizeButton();
 		initBlockheightConverter();
 		initVideoPreview();
+		initCreationTimeFallback();
 	}
 
 	mw.loader.using( [ 'mediawiki.util', 'mediawiki.api' ] ).then( init );

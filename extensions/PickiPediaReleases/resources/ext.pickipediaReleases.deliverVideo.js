@@ -106,17 +106,31 @@
 			updateBlockDateLabel( block, dateLabel );
 		} );
 
-		// Date picker → block height conversion
+		// Date picker → block height conversion (Etherscan API with local fallback)
 		var dateInput = el( 'dv-date-input' );
 		if ( dateInput ) {
 			dateInput.addEventListener( 'change', function () {
 				if ( dateInput.value ) {
-					// Parse date at noon local time to avoid timezone offset issues
 					var parts = dateInput.value.split( '-' );
 					var ts = Math.floor( new Date( parts[ 0 ], parts[ 1 ] - 1, parts[ 2 ], 12, 0, 0 ).getTime() / 1000 );
+					// Local estimate while API is in flight
 					var block = timestampToBlock( ts );
 					bhInput.value = block;
 					updateBlockDateLabel( block, dateLabel );
+					// Fetch exact block
+					fetch( 'https://api.etherscan.io/api?module=block&action=getblocknobytime' +
+						'&timestamp=' + ts + '&closest=before' )
+						.then( function ( r ) { return r.json(); } )
+						.then( function ( resp ) {
+							if ( resp.status === '1' && resp.result ) {
+								var exact = parseInt( resp.result, 10 );
+								if ( exact > 0 ) {
+									bhInput.value = exact;
+									updateBlockDateLabel( exact, dateLabel );
+								}
+							}
+						} )
+						.catch( function () {} );
 				}
 			} );
 		}
@@ -360,7 +374,27 @@
 			if ( f.size_bytes ) {
 				lines.push( '        size_bytes: ' + f.size_bytes );
 			}
+			if ( f.creation_time ) {
+				lines.push( '        creation_time: ' + quoteYamlValue( f.creation_time ) );
+			}
 		} );
+
+		// If the user hasn't picked a date and the video has creation_time
+		// metadata, use it as the default content date.
+		var contentDateInput = el( 'dv-content-date' );
+		var contentBhInput = el( 'dv-content-blockheight' );
+		if ( contentDateInput && !contentDateInput.value && contentBhInput && !contentBhInput.value ) {
+			var firstFile = ( draft.files || [] )[ 0 ];
+			if ( firstFile && firstFile.creation_time ) {
+				// creation_time is ISO 8601, e.g. "2026-03-15T14:30:00.000000Z"
+				var dateStr = firstFile.creation_time.substring( 0, 10 );
+				if ( dateStr && /^\d{4}-\d{2}-\d{2}$/.test( dateStr ) ) {
+					contentDateInput.value = dateStr;
+					// Trigger change event so the blockheight converter picks it up
+					contentDateInput.dispatchEvent( new Event( 'change' ) );
+				}
+			}
+		}
 
 		return lines.join( '\n' ) + '\n';
 	}

@@ -313,6 +313,17 @@
 	font-style: italic;
 }
 
+/* More settings (collapsed) */
+.rd-more-settings {
+	margin: 1em 0;
+	font-size: 0.9em;
+}
+
+.rd-more-settings summary {
+	cursor: pointer;
+	color: #72777d;
+}
+
 /* Raw YAML toggle */
 .release-raw-yaml {
 	margin-top: 2em;

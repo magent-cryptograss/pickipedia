@@ -102,16 +102,31 @@
 			updateBlockDateLabel( block, dateLabel );
 		} );
 
-		// Date picker → block height conversion
+		// Date picker → block height conversion (Etherscan API with local fallback)
 		var dateInput = el( 'dv-date-input' );
 		if ( dateInput ) {
 			dateInput.addEventListener( 'change', function () {
 				if ( dateInput.value ) {
 					var parts = dateInput.value.split( '-' );
 					var ts = Math.floor( new Date( parts[ 0 ], parts[ 1 ] - 1, parts[ 2 ], 12, 0, 0 ).getTime() / 1000 );
+					// Local estimate while API is in flight
 					var block = timestampToBlock( ts );
 					bhInput.value = block;
 					updateBlockDateLabel( block, dateLabel );
+					// Fetch exact block
+					fetch( 'https://api.etherscan.io/api?module=block&action=getblocknobytime' +
+						'&timestamp=' + ts + '&closest=before' )
+						.then( function ( r ) { return r.json(); } )
+						.then( function ( resp ) {
+							if ( resp.status === '1' && resp.result ) {
+								var exact = parseInt( resp.result, 10 );
+								if ( exact > 0 ) {
+									bhInput.value = exact;
+									updateBlockDateLabel( exact, dateLabel );
+								}
+							}
+						} )
+						.catch( function () {} );
 				}
 			} );
 		}
