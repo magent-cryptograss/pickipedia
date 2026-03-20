@@ -910,7 +910,7 @@
 			}
 		} );
 
-		// Date picker → look up exact block via Etherscan API
+		// Date picker → estimate block from date (local formula, day-level precision)
 		if ( dateInput ) {
 			dateInput.addEventListener( 'change', function () {
 				var dateStr = dateInput.value;
@@ -918,30 +918,11 @@
 					return;
 				}
 				var ts = Math.floor( new Date( dateStr + 'T12:00:00Z' ).getTime() / 1000 );
-
-				// Show local estimate immediately while API call is in flight
 				var estimated = timestampToBlock( ts );
 				if ( estimated > 0 ) {
 					bhInput.value = estimated;
 					updateBlockDate( estimated );
 				}
-
-				// Fetch exact block from Etherscan
-				fetch( 'https://api.etherscan.io/api?module=block&action=getblocknobytime' +
-					'&timestamp=' + ts + '&closest=before' )
-					.then( function ( r ) { return r.json(); } )
-					.then( function ( resp ) {
-						if ( resp.status === '1' && resp.result ) {
-							var block = parseInt( resp.result, 10 );
-							if ( block > 0 ) {
-								bhInput.value = block;
-								updateBlockDate( block );
-							}
-						}
-					} )
-					.catch( function () {
-						// Local estimate already in place, nothing to do
-					} );
 			} );
 		}
 
@@ -987,14 +968,7 @@
 			return;
 		}
 
-		// Show local estimate immediately
-		var estimatedTs = blockToTimestamp( blockNumber );
-		var date = new Date( estimatedTs * 1000 );
-		dateLabel.textContent = '≈ ' + date.toLocaleDateString( 'en-US', {
-			year: 'numeric',
-			month: 'long',
-			day: 'numeric'
-		} );
+		dateLabel.textContent = '⏳';
 
 		// Fetch actual block timestamp via public Ethereum RPC
 		var hexBlock = '0x' + blockNumber.toString( 16 );
@@ -1018,10 +992,12 @@
 						month: 'long',
 						day: 'numeric'
 					} );
+				} else {
+					dateLabel.textContent = '';
 				}
 			} )
 			.catch( function () {
-				// Local estimate already shown
+				dateLabel.textContent = '';
 			} );
 	}
 

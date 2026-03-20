@@ -73,13 +73,7 @@
 		if ( !labelEl || !block ) {
 			return;
 		}
-		// Local estimate immediately
-		var ts = blockToTimestamp( block );
-		var date = new Date( ts * 1000 );
-		labelEl.textContent = '≈ ' + date.toLocaleDateString( undefined, {
-			year: 'numeric', month: 'short', day: 'numeric'
-		} );
-		// Fetch exact timestamp via public RPC
+		labelEl.textContent = '⏳';
 		var hexBlock = '0x' + block.toString( 16 );
 		fetch( 'https://ethereum-rpc.publicnode.com', {
 			method: 'POST',
@@ -94,14 +88,18 @@
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( resp ) {
 				if ( resp.result && resp.result.timestamp ) {
-					var exactTs = parseInt( resp.result.timestamp, 16 );
-					var exactDate = new Date( exactTs * 1000 );
-					labelEl.textContent = exactDate.toLocaleDateString( undefined, {
+					var ts = parseInt( resp.result.timestamp, 16 );
+					var date = new Date( ts * 1000 );
+					labelEl.textContent = date.toLocaleDateString( undefined, {
 						year: 'numeric', month: 'short', day: 'numeric'
 					} );
+				} else {
+					labelEl.textContent = '';
 				}
 			} )
-			.catch( function () {} );
+			.catch( function () {
+				labelEl.textContent = '';
+			} );
 	}
 
 	function initBlockheightControls() {
@@ -130,31 +128,16 @@
 			updateBlockDateLabel( block, dateLabel );
 		} );
 
-		// Date picker → block height conversion (Etherscan API with local fallback)
+		// Date picker → estimate block from date (local formula, day-level precision)
 		var dateInput = el( 'dv-date-input' );
 		if ( dateInput ) {
 			dateInput.addEventListener( 'change', function () {
 				if ( dateInput.value ) {
 					var parts = dateInput.value.split( '-' );
 					var ts = Math.floor( new Date( parts[ 0 ], parts[ 1 ] - 1, parts[ 2 ], 12, 0, 0 ).getTime() / 1000 );
-					// Local estimate while API is in flight
 					var block = timestampToBlock( ts );
 					bhInput.value = block;
 					updateBlockDateLabel( block, dateLabel );
-					// Fetch exact block
-					fetch( 'https://api.etherscan.io/api?module=block&action=getblocknobytime' +
-						'&timestamp=' + ts + '&closest=before' )
-						.then( function ( r ) { return r.json(); } )
-						.then( function ( resp ) {
-							if ( resp.status === '1' && resp.result ) {
-								var exact = parseInt( resp.result, 10 );
-								if ( exact > 0 ) {
-									bhInput.value = exact;
-									updateBlockDateLabel( exact, dateLabel );
-								}
-							}
-						} )
-						.catch( function () {} );
 				}
 			} );
 		}
