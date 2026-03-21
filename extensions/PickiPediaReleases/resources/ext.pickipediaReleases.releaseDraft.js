@@ -605,6 +605,10 @@
 				if ( content.trim_end_seconds != null ) {
 					finalizeBody.trim_end_seconds = content.trim_end_seconds;
 				}
+				var preserveCheckbox = el( 'rd-preserve-original' );
+				if ( preserveCheckbox && preserveCheckbox.checked ) {
+					finalizeBody.preserve_original = true;
+				}
 				body = JSON.stringify( finalizeBody );
 			}
 
@@ -1079,30 +1083,123 @@
 		var token = mw.config.get( 'wgUploadToken' );
 		var user = mw.config.get( 'wgUploadUser' );
 		var timestamp = mw.config.get( 'wgUploadTimestamp' );
+		var gatewayUrl = mw.config.get( 'wgIpfsGatewayUrl' ) || 'https://ipfs.delivery-kid.cryptograss.live';
 		var draftId = video.getAttribute( 'data-draft-id' );
 		var filename = video.getAttribute( 'data-filename' );
+		var previewStatus = el( 'rd-preview-status' );
+		var hlsInfo = el( 'rd-hls-info' );
 
-		if ( !deliveryKidUrl || !token || !draftId || !filename ) {
-			// Not logged in or missing config — hide the player
-			var container = el( 'rd-video-preview' );
-			if ( container ) {
-				container.style.display = 'none';
-			}
-			var trimControls = el( 'rd-trim-controls' );
-			if ( trimControls ) {
-				trimControls.style.display = 'none';
-			}
+		if ( !deliveryKidUrl || !draftId ) {
 			return;
 		}
 
-		var src = deliveryKidUrl + '/staging/drafts/' +
-			encodeURIComponent( draftId ) + '/' +
-			encodeURIComponent( filename ) +
-			'?token=' + encodeURIComponent( token ) +
-			'&user=' + encodeURIComponent( user ) +
-			'&timestamp=' + encodeURIComponent( timestamp );
+		function setVideoSrc( src ) {
+			video.src = src;
+			video.style.display = '';
+			if ( previewStatus ) {
+				previewStatus.style.display = 'none';
+			}
+		}
 
-		video.src = src;
+		function showPreviewStatus( msg ) {
+			if ( previewStatus ) {
+				previewStatus.textContent = msg;
+				previewStatus.style.display = '';
+			}
+			video.style.display = 'none';
+		}
+
+		function loadFromStaging() {
+			if ( !token || !filename ) {
+				return false;
+			}
+			var src = deliveryKidUrl + '/staging/drafts/' +
+				encodeURIComponent( draftId ) + '/' +
+				encodeURIComponent( filename ) +
+				'?token=' + encodeURIComponent( token ) +
+				'&user=' + encodeURIComponent( user ) +
+				'&timestamp=' + encodeURIComponent( timestamp );
+			setVideoSrc( src );
+			return true;
+		}
+
+		function pollForPreview() {
+			showPreviewStatus( '⏳ Preview is being transcoded...' );
+			if ( hlsInfo ) {
+				hlsInfo.textContent = 'AV1 HLS transcoding in progress. Preview will appear when ready.';
+			}
+
+			var headers = {};
+			if ( token ) {
+				headers[ 'X-Upload-Token' ] = token;
+				headers[ 'X-Upload-User' ] = user;
+				headers[ 'X-Upload-Timestamp' ] = String( timestamp );
+			}
+
+			var pollInterval = setInterval( function () {
+				fetch( deliveryKidUrl + '/draft-content/' + draftId, {
+					headers: headers
+				} ).then( function ( resp ) {
+					if ( !resp.ok ) {
+						return null;
+					}
+					return resp.json();
+				} ).then( function ( data ) {
+					if ( !data ) {
+						return;
+					}
+					if ( data.preview_status === 'ready' && data.preview_mp4_cid ) {
+						clearInterval( pollInterval );
+						setVideoSrc( gatewayUrl + '/ipfs/' + data.preview_mp4_cid );
+						if ( hlsInfo ) {
+							hlsInfo.textContent = 'AV1 HLS transcode complete. Ready to finalize.';
+						}
+					} else if ( data.preview_status === 'failed' ) {
+						clearInterval( pollInterval );
+						// Fall back to staging if available
+						if ( !loadFromStaging() ) {
+							showPreviewStatus( 'Preview transcoding failed.' );
+						}
+						if ( hlsInfo ) {
+							hlsInfo.textContent = 'Preview transcoding failed. Video will be transcoded on finalization.';
+						}
+					}
+				} ).catch( function () {
+					// Silently retry on network errors
+				} );
+			}, 10000 ); // Poll every 10 seconds
+		}
+
+		// Check delivery-kid for preview status
+		// The preview CID lives in delivery-kid's draft state, not the wiki YAML.
+		if ( token ) {
+			showPreviewStatus( '⏳ Checking preview...' );
+			var headers = {};
+			headers[ 'X-Upload-Token' ] = token;
+			headers[ 'X-Upload-User' ] = user;
+			headers[ 'X-Upload-Timestamp' ] = String( timestamp );
+
+			fetch( deliveryKidUrl + '/draft-content/' + draftId, {
+				headers: headers
+			} ).then( function ( resp ) {
+				return resp.ok ? resp.json() : null;
+			} ).then( function ( data ) {
+				if ( data && data.preview_status === 'ready' && data.preview_mp4_cid ) {
+					setVideoSrc( gatewayUrl + '/ipfs/' + data.preview_mp4_cid );
+					if ( hlsInfo ) {
+						hlsInfo.textContent = 'AV1 HLS transcode complete. Ready to finalize.';
+					}
+				} else if ( data && ( data.preview_status === 'pending' || data.preview_status === 'processing' ) ) {
+					pollForPreview();
+				} else {
+					loadFromStaging();
+				}
+			} ).catch( function () {
+				loadFromStaging();
+			} );
+		} else {
+			showPreviewStatus( 'Log in to preview video.' );
+		}
 
 		// "Set start" / "Set end" buttons grab current playback position
 		var setStartBtn = el( 'rd-trim-set-start' );

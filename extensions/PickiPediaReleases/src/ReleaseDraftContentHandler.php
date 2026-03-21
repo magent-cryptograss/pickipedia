@@ -492,23 +492,34 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 
 			$html .= Html::closeElement( 'table' );
 
-			// Embed video player for preview (JS sets src with auth query params)
+			// Embed video player for preview
+			// If preview HLS is ready, JS will use the IPFS CID.
+			// If still processing, JS will show a status message and poll.
+			// Fallback: stream original from staging (large files).
 			$draftId = $data['draft_id'] ?? '';
 			foreach ( $files as $f ) {
 				if ( ( $f['media_type'] ?? '' ) === 'video' && $draftId ) {
-					$html .= Html::rawElement( 'div', [
+					$html .= Html::openElement( 'div', [
 						'class' => 'rd-video-preview',
 						'id' => 'rd-video-preview',
-					],
-						Html::element( 'video', [
-							'id' => 'rd-video-player',
-							'class' => 'rd-video-player',
-							'controls' => true,
-							'preload' => 'metadata',
-							'data-draft-id' => $draftId,
-							'data-filename' => $f['original_filename'] ?? '',
-						] )
-					);
+					] );
+
+					// Preview status message (shown/hidden by JS)
+					$html .= Html::element( 'div', [
+						'id' => 'rd-preview-status',
+						'class' => 'rd-preview-status',
+					], '' );
+
+					$html .= Html::element( 'video', [
+						'id' => 'rd-video-player',
+						'class' => 'rd-video-player',
+						'controls' => true,
+						'preload' => 'metadata',
+						'data-draft-id' => $draftId,
+						'data-filename' => $f['original_filename'] ?? '',
+					] );
+
+					$html .= Html::closeElement( 'div' );
 
 					// Trim controls — set start/end from current playback position
 					$trimStart = $data['content']['trim_start_seconds'] ?? '';
@@ -570,8 +581,8 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 				}
 			}
 
-			$html .= Html::rawElement( 'p', [ 'class' => 'uc-hls-info' ],
-				'Video will be transcoded to AV1 HLS (royalty-free) automatically on finalization.' );
+			$html .= Html::rawElement( 'p', [ 'class' => 'uc-hls-info', 'id' => 'rd-hls-info' ],
+				'Video will be transcoded to AV1 HLS (royalty-free).' );
 		}
 
 		$html .= Html::closeElement( 'div' );
@@ -639,6 +650,18 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 			'id' => 'rd-save-btn',
 			'class' => 'cdx-button cdx-button--action-progressive',
 		], 'Save Draft' );
+
+		// Preserve original checkbox
+		$html .= Html::openElement( 'label', [
+			'class' => 'rd-preserve-label',
+			'for' => 'rd-preserve-original',
+		] );
+		$html .= Html::element( 'input', [
+			'type' => 'checkbox',
+			'id' => 'rd-preserve-original',
+		] );
+		$html .= ' Keep original file';
+		$html .= Html::closeElement( 'label' );
 
 		$html .= Html::element( 'button', [
 			'type' => 'button',
