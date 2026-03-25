@@ -1185,14 +1185,21 @@
 			fetch( deliveryKidUrl + '/draft-content/' + draftId, {
 				headers: headers
 			} ).then( function ( resp ) {
+				if ( resp.status === 404 ) {
+					showPreviewStatus( 'Draft not found on delivery-kid. Files may have expired from staging.' );
+					return null;
+				}
 				return resp.ok ? resp.json() : null;
 			} ).then( function ( data ) {
-				if ( data && data.preview_status === 'ready' && data.preview_mp4_cid ) {
+				if ( !data ) {
+					return;
+				}
+				if ( data.preview_status === 'ready' && data.preview_mp4_cid ) {
 					setVideoSrc( gatewayUrl + '/ipfs/' + data.preview_mp4_cid );
 					if ( hlsInfo ) {
 						hlsInfo.textContent = 'AV1 HLS transcode complete. Ready to finalize.';
 					}
-				} else if ( data && ( data.preview_status === 'pending' || data.preview_status === 'processing' ) ) {
+				} else if ( data.preview_status === 'pending' || data.preview_status === 'processing' ) {
 					pollForPreview();
 				} else {
 					loadFromStaging();
