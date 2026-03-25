@@ -32,7 +32,7 @@ class DeliveryKidUploadInput extends PFFormInput {
 	/**
 	 * @return string[]
 	 */
-	public static function getResourceModuleNames(): array {
+	public function getResourceModuleNames(): array {
 		return [ 'ext.pickipediaReleases.deliveryKidInput' ];
 	}
 

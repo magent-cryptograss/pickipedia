@@ -90,7 +90,7 @@ class Hooks implements LoadExtensionSchemaUpdatesHook, BeforePageDisplayHook {
 	 *
 	 * @param \PFFormPrinter &$formPrinter
 	 */
-	public function onPageFormsFormPrinterSetup( &$formPrinter ): void {
+	public function onPageForms__FormPrinterSetup( &$formPrinter ): void {
 		$formPrinter->registerInputType(
 			'MediaWiki\\Extension\\PickiPediaReleases\\DeliveryKidUploadInput'
 		);
