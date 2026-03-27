@@ -126,11 +126,10 @@ $wgGroupPermissions['*']['createaccount'] = true;
 # Anonymous users can read but not edit
 $wgGroupPermissions['*']['edit'] = false;
 $wgGroupPermissions['*']['read'] = true;
+# All logged-in users can edit (restored after disabling for anonymous above)
+$wgGroupPermissions['user']['edit'] = true;
 # Allow sysops to merge/delete users (for bot cleanup)
 $wgGroupPermissions['sysop']['usermerge'] = true;
-# Release group - users who can add trusted IPFS/torrent content to delivery-kid
-$wgGroupPermissions['release']['edit'] = true;
-
 # Restrict Release namespace to users in the 'release' group
 # NS_RELEASE (3004) is defined by the PickiPediaReleases extension
 $wgNamespaceProtection[3004] = ['release-edit'];
