@@ -163,6 +163,10 @@ wfLoadExtension( 'PageForms' );
 # YouTube - for embedding YouTube videos
 wfLoadExtension( 'YouTube' );
 
+# Scribunto - Lua scripting for templates (Module: namespace)
+wfLoadExtension( 'Scribunto' );
+$wgScribuntoDefaultEngine = 'luastandalone';
+
 # ParserFunctions - {{#if:}}, {{#switch:}}, etc. for templates (bundled with MediaWiki)
 wfLoadExtension( 'ParserFunctions' );
 $wgPFEnableStringFunctions = true;  # Enable #explode, #sub, #len, etc. for parsing
