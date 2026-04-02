@@ -209,8 +209,9 @@ wfLoadExtension( 'MsUpload' );
 $wgMSU_useDragDrop = true;
 $wgMSU_showAutoCat = true;
 
-# MediaUploader - step-by-step multi-file upload wizard (replaces Special:Upload for bulk uploads)
-wfLoadExtension( 'MediaUploader' );
+# MediaUploader - step-by-step multi-file upload wizard
+# Disabled on production until extension is installed on the VPS
+# wfLoadExtension( 'MediaUploader' );
 $wgMSU_checkAutoCat = true;
 $wgMSU_imgParams = '400px';
 $wgMSU_uploadsize = '1024mb';
