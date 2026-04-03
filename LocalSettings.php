@@ -213,6 +213,7 @@ $wgMSU_showAutoCat = true;
 wfLoadExtension( 'MediaUploader' );
 $wgMediaUploaderConfig = [
     'tutorial' => [ 'enabled' => false ],
+    'chunkSize' => 0,  // Disable chunked uploads - debug body loss through Caddy
 ];
 $wgUploadNavigationUrl = '/wiki/Special:MediaUploader';
 $wgMSU_checkAutoCat = true;
