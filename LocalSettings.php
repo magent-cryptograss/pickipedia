@@ -214,8 +214,7 @@ wfLoadExtension( 'MediaUploader' );
 $wgMediaUploaderConfig = [
     'tutorial' => [ 'enabled' => false ],
 ];
-# Disabled until Caddy upload bug resolved (pickipedia#71)
-# $wgUploadNavigationUrl = '/wiki/Special:MediaUploader';
+$wgUploadNavigationUrl = '/wiki/Special:MediaUploader';
 $wgMSU_checkAutoCat = true;
 $wgMSU_imgParams = '400px';
 $wgMSU_uploadsize = '1024mb';
