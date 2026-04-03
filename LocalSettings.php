@@ -214,7 +214,9 @@ wfLoadExtension( 'MediaUploader' );
 $wgMediaUploaderConfig = [
     'tutorial' => [ 'enabled' => false ],
 ];
-$wgUploadNavigationUrl = '/wiki/Special:MediaUploader';
+# MediaUploader works but Caddy drops POST body on chunked uploads
+# See: https://github.com/cryptograss/maybelle-config/issues/79
+# $wgUploadNavigationUrl = '/wiki/Special:MediaUploader';
 $wgMSU_checkAutoCat = true;
 $wgMSU_imgParams = '400px';
 $wgMSU_uploadsize = '1024mb';
