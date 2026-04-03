@@ -213,7 +213,6 @@ $wgMSU_showAutoCat = true;
 wfLoadExtension( 'MediaUploader' );
 $wgMediaUploaderConfig = [
     'tutorial' => [ 'enabled' => false ],
-    'chunkSize' => 1 * 1024 * 1024,  // 1MB chunks
 ];
 $wgUploadNavigationUrl = '/wiki/Special:MediaUploader';
 $wgMSU_checkAutoCat = true;
