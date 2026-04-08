@@ -1,6 +1,6 @@
 <?php
 /**
- * Special page listing all releases
+ * Special page listing all releases, grouped by type
  *
  * @file
  * @ingroup Extensions
@@ -13,6 +13,14 @@ use MediaWiki\MediaWikiServices;
 use MediaWiki\SpecialPage\SpecialPage;
 
 class SpecialReleases extends SpecialPage {
+
+	/** @var array Type display config: key => [heading, order] */
+	private const TYPE_CONFIG = [
+		'video' => [ 'Videos', 1 ],
+		'record' => [ 'Records', 2 ],
+		'blue-railroad' => [ 'Blue Railroad', 3 ],
+		'other' => [ 'Other', 4 ],
+	];
 
 	public function __construct() {
 		parent::__construct( 'Releases' );
@@ -38,7 +46,17 @@ class SpecialReleases extends SpecialPage {
 		// Editable mid-section: MediaWiki:special-releases-mid
 		$this->addWikitextMessage( 'special-releases-mid' );
 
-		$out->addHTML( $this->renderTable( $releases ) );
+		// Group by release_type
+		$grouped = $this->groupByType( $releases );
+
+		foreach ( $grouped as $type => $items ) {
+			$heading = self::TYPE_CONFIG[$type][0] ?? ucfirst( $type );
+			$out->addHTML( Html::element( 'h2', [], $heading ) );
+			$out->addHTML( Html::element( 'p', [],
+				count( $items ) . ( count( $items ) === 1 ? ' release' : ' releases' )
+			) );
+			$out->addHTML( $this->renderTable( $items ) );
+		}
 
 		// Editable footer: MediaWiki:special-releases-footer
 		$this->addWikitextMessage( 'special-releases-footer' );
@@ -109,6 +127,7 @@ class SpecialReleases extends SpecialPage {
 				'title_obj' => $title,
 				'display_title' => $data['title'] ?? null,
 				'description' => $data['description'] ?? null,
+				'release_type' => $data['release_type'] ?? null,
 				'file_type' => $data['file_type'] ?? null,
 				'file_size' => isset( $data['file_size'] ) ? (int)$data['file_size'] : null,
 				'pinned_on' => $data['pinned_on'] ?? null,
@@ -117,6 +136,58 @@ class SpecialReleases extends SpecialPage {
 		}
 
 		return $releases;
+	}
+
+	/**
+	 * Group releases by type, inferring type for legacy releases.
+	 *
+	 * @param array $releases
+	 * @return array Keyed by type string, values are arrays of releases
+	 */
+	private function groupByType( array $releases ): array {
+		$grouped = [];
+
+		foreach ( $releases as $release ) {
+			$type = $release['release_type'] ?? $this->inferType( $release );
+			$grouped[$type][] = $release;
+		}
+
+		// Sort groups by configured order
+		uksort( $grouped, function ( $a, $b ) {
+			$orderA = self::TYPE_CONFIG[$a][1] ?? 99;
+			$orderB = self::TYPE_CONFIG[$b][1] ?? 99;
+			return $orderA <=> $orderB;
+		} );
+
+		return $grouped;
+	}
+
+	/**
+	 * Infer release type for legacy releases that lack release_type.
+	 *
+	 * @param array $release
+	 * @return string
+	 */
+	private function inferType( array $release ): string {
+		$fileType = $release['file_type'] ?? '';
+		$title = $release['display_title'] ?? '';
+
+		// Blue Railroad submissions have characteristic titles
+		if ( str_starts_with( $title, 'Blue Railroad Submission' ) ) {
+			return 'blue-railroad';
+		}
+
+		// Video MIME types
+		if ( str_starts_with( $fileType, 'video/' ) ) {
+			return 'video';
+		}
+
+		// Audio MIME types
+		if ( str_starts_with( $fileType, 'audio/' ) ) {
+			return 'record';
+		}
+
+		return 'other';
 	}
 
 	/**
@@ -133,6 +204,7 @@ class SpecialReleases extends SpecialPage {
 		$html .= Html::element( 'th', [], 'CID' );
 		$html .= Html::element( 'th', [], 'Title' );
 		$html .= Html::element( 'th', [], 'Type' );
+		$html .= Html::element( 'th', [], 'Size' );
 		$html .= Html::element( 'th', [], 'Pinned On' );
 		$html .= Html::element( 'th', [], 'References' );
 		$html .= Html::closeElement( 'tr' );
@@ -171,12 +243,19 @@ class SpecialReleases extends SpecialPage {
 		}
 		$html .= Html::element( 'td', [], $displayText );
 
-		// File type
-		$fileType = $release['file_type'] ?? '';
+		// File type (MIME)
+		$html .= Html::element( 'td', [], $release['file_type'] ?? '' );
+
+		// Size — separate sortable column
+		$sizeText = '';
+		$sortValue = 0;
 		if ( $release['file_size'] ) {
-			$fileType .= ' · ' . $this->formatFileSize( $release['file_size'] );
+			$sizeText = $this->formatFileSize( $release['file_size'] );
+			$sortValue = $release['file_size'];
 		}
-		$html .= Html::element( 'td', [], $fileType );
+		$html .= Html::element( 'td', [
+			'data-sort-value' => $sortValue,
+		], $sizeText );
 
 		// Pinned on
 		$pinnedOn = '';

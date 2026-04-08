@@ -112,6 +112,16 @@ class ReleaseContent extends AbstractContent {
 	}
 
 	/**
+	 * Get release type (video, record, blue-railroad, other)
+	 *
+	 * @return string|null
+	 */
+	public function getReleaseType(): ?string {
+		$data = $this->getData();
+		return $data['release_type'] ?? null;
+	}
+
+	/**
 	 * Get file type (MIME type)
 	 *
 	 * @return string|null

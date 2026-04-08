@@ -134,7 +134,113 @@ YAML;
 			if ( !empty( $data['pinned_on'] ) ) {
 				$output->addCategory( 'Pinned_Releases' );
 			}
+
+			// Add category based on release type
+			$releaseType = $data['release_type'] ?? null;
+			if ( $releaseType ) {
+				$typeCategoryMap = [
+					'video' => 'Video_Releases',
+					'record' => 'Record_Releases',
+					'blue-railroad' => 'Blue_Railroad_Releases',
+					'other' => 'Other_Releases',
+				];
+				if ( isset( $typeCategoryMap[$releaseType] ) ) {
+					$output->addCategory( $typeCategoryMap[$releaseType] );
+				}
+			}
 		}
+
+		// Emit Semantic MediaWiki properties if SMW is available
+		if ( $pageRef && class_exists( \SMW\DIProperty::class ) ) {
+			$this->setSemanticProperties( $output, $cid, $data, $pageRef );
+		}
+	}
+
+	/**
+	 * Emit Semantic MediaWiki properties for this Release page.
+	 *
+	 * @param ParserOutput $output
+	 * @param string|null $cid
+	 * @param array $data
+	 * @param mixed $pageRef
+	 */
+	private function setSemanticProperties(
+		ParserOutput $output,
+		?string $cid,
+		array $data,
+		$pageRef
+	): void {
+		$title = \MediaWiki\MediaWikiServices::getInstance()
+			->getTitleFactory()
+			->makeTitle( $pageRef->getNamespace(), $pageRef->getDBkey() );
+
+		$subject = \SMW\DIWikiPage::newFromTitle( $title );
+		$semanticData = new \SMW\SemanticData( $subject );
+
+		if ( $cid ) {
+			$normalizedCid = str_starts_with( $cid, 'Bafy' ) ? strtolower( $cid ) : $cid;
+			$semanticData->addPropertyObjectValue(
+				new \SMW\DIProperty( 'IPFS_CID' ),
+				new \SMWDIBlob( $normalizedCid )
+			);
+		}
+
+		if ( !empty( $data['title'] ) ) {
+			$semanticData->addPropertyObjectValue(
+				new \SMW\DIProperty( 'Release_title' ),
+				new \SMWDIBlob( $data['title'] )
+			);
+		}
+
+		if ( !empty( $data['release_type'] ) ) {
+			$semanticData->addPropertyObjectValue(
+				new \SMW\DIProperty( 'Release_type' ),
+				new \SMWDIBlob( $data['release_type'] )
+			);
+		}
+
+		if ( !empty( $data['file_type'] ) ) {
+			$semanticData->addPropertyObjectValue(
+				new \SMW\DIProperty( 'File_type' ),
+				new \SMWDIBlob( $data['file_type'] )
+			);
+		}
+
+		if ( !empty( $data['file_size'] ) ) {
+			$semanticData->addPropertyObjectValue(
+				new \SMW\DIProperty( 'File_size' ),
+				new \SMWDINumber( (float)(int)$data['file_size'] )
+			);
+		}
+
+		if ( !empty( $data['pinned_on'] ) ) {
+			$pinnedList = is_array( $data['pinned_on'] )
+				? implode( ', ', $data['pinned_on'] )
+				: (string)$data['pinned_on'];
+			$semanticData->addPropertyObjectValue(
+				new \SMW\DIProperty( 'Pinned_on' ),
+				new \SMWDIBlob( $pinnedList )
+			);
+		}
+
+		if ( !empty( $data['bittorrent_infohash'] ) ) {
+			$semanticData->addPropertyObjectValue(
+				new \SMW\DIProperty( 'BitTorrent_infohash' ),
+				new \SMWDIBlob( $data['bittorrent_infohash'] )
+			);
+		}
+
+		if ( !empty( $data['description'] ) ) {
+			$semanticData->addPropertyObjectValue(
+				new \SMW\DIProperty( 'Release_description' ),
+				new \SMWDIBlob( $data['description'] )
+			);
+		}
+
+		// Store semantic data in the ParserOutput for SMW to pick up
+		$parserData = \SMW\ParserData::makeFromCorePOD( $title, $output );
+		$parserData->getSemanticData()->importFrom( $semanticData );
+		$parserData->pushSemanticDataToParserOutput();
 	}
 
 	/**
