@@ -1083,7 +1083,8 @@
 		}
 
 		var deliveryKidUrl = mw.config.get( 'wgDeliveryKidUrl' );
-		var token = mw.config.get( 'wgUploadToken' );
+		// Prefer finalize token (release group) over upload token (uploader only)
+		var token = mw.config.get( 'wgFinalizeToken' ) || mw.config.get( 'wgUploadToken' );
 		var user = mw.config.get( 'wgUploadUser' );
 		var timestamp = mw.config.get( 'wgUploadTimestamp' );
 		var gatewayUrl = mw.config.get( 'wgIpfsGatewayUrl' ) || 'https://ipfs.delivery-kid.cryptograss.live';
