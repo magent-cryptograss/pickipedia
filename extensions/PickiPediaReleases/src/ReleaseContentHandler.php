@@ -166,7 +166,8 @@ YAML;
 	/**
 	 * Emit Semantic MediaWiki properties for this Release page.
 	 *
-	 * Uses SMW\DataValueFactory for compatibility across SMW versions.
+	 * Uses DIProperty with explicit type IDs and DIBlob/DINumber directly,
+	 * since DataValueFactory defaults to Page type for unknown properties.
 	 *
 	 * @param ParserOutput $output
 	 * @param string|null $cid
@@ -185,43 +186,43 @@ YAML;
 
 		$subject = \SMW\DIWikiPage::newFromTitle( $title );
 		$semanticData = new \SMW\SemanticData( $subject );
-		$dvFactory = \SMW\DataValueFactory::getInstance();
 
-		$props = [];
+		// Helper to add a text property
+		$addText = function ( string $propName, string $value ) use ( $semanticData ) {
+			$prop = new \SMW\DIProperty( $propName );
+			$prop->setPropertyTypeId( '_txt' );
+			$semanticData->addPropertyObjectValue( $prop, new \SMW\DIBlob( $value ) );
+		};
 
 		if ( $cid ) {
 			$normalizedCid = str_starts_with( $cid, 'Bafy' ) ? strtolower( $cid ) : $cid;
-			$props['IPFS_CID'] = $normalizedCid;
+			$addText( 'IPFS_CID', $normalizedCid );
 		}
 		if ( !empty( $data['title'] ) ) {
-			$props['Release_title'] = $data['title'];
+			$addText( 'Release_title', $data['title'] );
 		}
 		if ( !empty( $data['release_type'] ) ) {
-			$props['Release_type'] = $data['release_type'];
+			$addText( 'Release_type', $data['release_type'] );
 		}
 		if ( !empty( $data['file_type'] ) ) {
-			$props['File_type'] = $data['file_type'];
+			$addText( 'File_type', $data['file_type'] );
 		}
 		if ( !empty( $data['file_size'] ) ) {
-			$props['File_size'] = (string)(int)$data['file_size'];
+			$prop = new \SMW\DIProperty( 'File_size' );
+			$prop->setPropertyTypeId( '_num' );
+			$semanticData->addPropertyObjectValue( $prop, new \SMW\DINumber( (float)(int)$data['file_size'] ) );
 		}
 		if ( !empty( $data['pinned_on'] ) ) {
-			$props['Pinned_on'] = is_array( $data['pinned_on'] )
+			$pinnedList = is_array( $data['pinned_on'] )
 				? implode( ', ', $data['pinned_on'] )
 				: (string)$data['pinned_on'];
+			$addText( 'Pinned_on', $pinnedList );
 		}
 		if ( !empty( $data['bittorrent_infohash'] ) ) {
-			$props['BitTorrent_infohash'] = $data['bittorrent_infohash'];
+			$addText( 'BitTorrent_infohash', $data['bittorrent_infohash'] );
 		}
 		if ( !empty( $data['description'] ) ) {
-			$props['Release_description'] = $data['description'];
-		}
-
-		foreach ( $props as $propName => $value ) {
-			$dataValue = $dvFactory->newDataValueByText( $propName, $value );
-			if ( $dataValue->isValid() ) {
-				$semanticData->addDataValue( $dataValue );
-			}
+			$addText( 'Release_description', $data['description'] );
 		}
 
 		// Store semantic data in the ParserOutput for SMW to pick up
