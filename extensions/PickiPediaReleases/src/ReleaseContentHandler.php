@@ -225,10 +225,10 @@ YAML;
 			$addText( 'Release_description', $data['description'] );
 		}
 
-		// Store semantic data in the ParserOutput for SMW to pick up
-		$parserData = new \SMW\ParserData( $title, $output );
-		$parserData->getSemanticData()->importFrom( $semanticData );
-		$parserData->pushSemanticDataToParserOutput();
+		// Write directly to SMW store — custom content handlers bypass
+		// SMW's parser hooks, so the ParserOutput pipeline doesn't work.
+		$store = \SMW\StoreFactory::getStore();
+		$store->updateData( $semanticData );
 	}
 
 	/**
