@@ -9,16 +9,12 @@
 namespace MediaWiki\Extension\PickiPediaReleases;
 
 use Content;
-use MediaWiki\Content\AbstractContent;
 use MediaWiki\Content\TextContent;
 use StatusValue;
 use Symfony\Component\Yaml\Yaml;
 use Symfony\Component\Yaml\Exception\ParseException;
 
-class ReleaseContent extends AbstractContent {
-
-	/** @var string Raw YAML text */
-	private string $yamlText;
+class ReleaseContent extends TextContent {
 
 	/** @var array|null Parsed data, cached */
 	private ?array $parsedData = null;
@@ -30,17 +26,7 @@ class ReleaseContent extends AbstractContent {
 	 * @param string $text Raw YAML text
 	 */
 	public function __construct( string $text ) {
-		parent::__construct( 'release-yaml' );
-		$this->yamlText = $text;
-	}
-
-	/**
-	 * Get the raw YAML text
-	 *
-	 * @return string
-	 */
-	public function getText(): string {
-		return $this->yamlText;
+		parent::__construct( $text, 'release-yaml' );
 	}
 
 	/**
@@ -72,7 +58,7 @@ class ReleaseContent extends AbstractContent {
 	 */
 	private function parseYaml(): void {
 		try {
-			$data = Yaml::parse( $this->yamlText );
+			$data = Yaml::parse( $this->getText() );
 			$this->parsedData = is_array( $data ) ? $data : [];
 			$this->parseError = null;
 		} catch ( ParseException $e ) {
@@ -210,41 +196,19 @@ class ReleaseContent extends AbstractContent {
 	/**
 	 * @inheritDoc
 	 */
-	public function getWikitextForTransclusion(): string {
-		// Return raw YAML when transcluded
-		return $this->yamlText;
-	}
-
-	/**
-	 * @inheritDoc
-	 */
 	public function getTextForSummary( $maxLength = 250 ) {
 		$title = $this->getReleaseTitle();
 		if ( $title !== null ) {
 			return mb_substr( $title, 0, $maxLength );
 		}
-		return mb_substr( $this->yamlText, 0, $maxLength );
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function getNativeData(): string {
-		return $this->yamlText;
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	public function getSize(): int {
-		return strlen( $this->yamlText );
+		return mb_substr( $this->getText(), 0, $maxLength );
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	public function copy(): Content {
-		return new ReleaseContent( $this->yamlText );
+		return new ReleaseContent( $this->getText() );
 	}
 
 	/**
@@ -252,14 +216,5 @@ class ReleaseContent extends AbstractContent {
 	 */
 	public function isCountable( $hasLinks = null ): bool {
 		return true;
-	}
-
-	/**
-	 * Convert to human-readable text
-	 *
-	 * @return string
-	 */
-	public function serialize( $format = null ): string {
-		return $this->yamlText;
 	}
 }
