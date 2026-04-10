@@ -191,7 +191,7 @@ YAML;
 		$addText = function ( string $propName, string $value ) use ( $semanticData ) {
 			$prop = new \SMW\DIProperty( $propName );
 			$prop->setPropertyTypeId( '_txt' );
-			$semanticData->addPropertyObjectValue( $prop, new \SMW\DIBlob( $value ) );
+			$semanticData->addPropertyObjectValue( $prop, new \SMWDIBlob( $value ) );
 		};
 
 		if ( $cid ) {
@@ -210,7 +210,7 @@ YAML;
 		if ( !empty( $data['file_size'] ) ) {
 			$prop = new \SMW\DIProperty( 'File_size' );
 			$prop->setPropertyTypeId( '_num' );
-			$semanticData->addPropertyObjectValue( $prop, new \SMW\DINumber( (float)(int)$data['file_size'] ) );
+			$semanticData->addPropertyObjectValue( $prop, new \SMWDINumber( (float)(int)$data['file_size'] ) );
 		}
 		if ( !empty( $data['pinned_on'] ) ) {
 			$pinnedList = is_array( $data['pinned_on'] )
