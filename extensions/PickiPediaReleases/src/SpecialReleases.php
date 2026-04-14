@@ -141,6 +141,7 @@ class SpecialReleases extends SpecialPage {
 				'file_type' => $data['file_type'] ?? null,
 				'file_size' => isset( $data['file_size'] ) ? (int)$data['file_size'] : null,
 				'pinned_on' => $pinnedOn,
+				'thumbnail' => $data['thumbnail'] ?? null,
 				'backlinks' => (int)$backlinkCount,
 			];
 		}
@@ -240,22 +241,23 @@ class SpecialReleases extends SpecialPage {
 		// Thumbnail
 		$cid = $release['page_title'];
 		$thumbHtml = '';
-		$services = MediaWikiServices::getInstance();
-		$repoGroup = $services->getRepoGroup();
+		$thumbFilename = $release['thumbnail'] ?? null;
 
-		// Check for uploaded thumbnail (Blue Railroad tokens have these)
-		$normalizedCid = str_starts_with( $cid, 'Bafy' ) ? strtolower( $cid ) : $cid;
-		$thumbFile = $repoGroup->findFile( "Blue_Railroad_Video_{$normalizedCid}.jpg" );
-		if ( $thumbFile && $thumbFile->exists() ) {
-			$thumb = $thumbFile->transform( [ 'width' => 60 ] );
-			if ( $thumb ) {
-				$thumbHtml = Html::rawElement( 'a', [
-					'href' => $release['title_obj']->getLocalURL(),
-				], Html::element( 'img', [
-					'src' => $thumb->getUrl(),
-					'width' => 60,
-					'loading' => 'lazy',
-				] ) );
+		if ( $thumbFilename ) {
+			$services = MediaWikiServices::getInstance();
+			$repoGroup = $services->getRepoGroup();
+			$thumbFile = $repoGroup->findFile( $thumbFilename );
+			if ( $thumbFile && $thumbFile->exists() ) {
+				$thumb = $thumbFile->transform( [ 'width' => 60 ] );
+				if ( $thumb ) {
+					$thumbHtml = Html::rawElement( 'a', [
+						'href' => $release['title_obj']->getLocalURL(),
+					], Html::element( 'img', [
+						'src' => $thumb->getUrl(),
+						'width' => 60,
+						'loading' => 'lazy',
+					] ) );
+				}
 			}
 		}
 		$html .= Html::rawElement( 'td', [
