@@ -102,6 +102,28 @@ YAML;
 		// Get optional YAML metadata
 		$data = $content->getData();
 
+		// Show banner for deleted or unpinned releases
+		$isDeleted = !empty( $data['delete'] );
+		$isUnpinned = !empty( $data['unpin'] );
+		$pinnedOn = $data['pinned_on'] ?? null;
+		$hasActivePins = !empty( $pinnedOn );
+
+		if ( $isDeleted && !$hasActivePins ) {
+			$html .= Html::rawElement( 'div', [
+				'class' => 'release-deleted-banner',
+				'style' => 'background:#fee; border:2px solid #c00; padding:1em; margin-bottom:1em; border-radius:4px;',
+			], Html::element( 'strong', [ 'style' => 'color:#c00;' ],
+				'This release has been deleted and is no longer pinned or distributed.'
+			) );
+		} elseif ( $isUnpinned && !$hasActivePins ) {
+			$html .= Html::rawElement( 'div', [
+				'class' => 'release-unpinned-banner',
+				'style' => 'background:#fee; border:2px solid #c00; padding:1em; margin-bottom:1em; border-radius:4px;',
+			], Html::element( 'strong', [ 'style' => 'color:#c00;' ],
+				'This release has been unpinned and is no longer distributed.'
+			) );
+		}
+
 		// Determine if this release is a video:
 		// 1. Explicit file_type in YAML
 		// 2. Inferred from backlinks (pages using HLSVideo template link here)
