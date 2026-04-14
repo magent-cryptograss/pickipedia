@@ -122,6 +122,16 @@ class SpecialReleases extends SpecialPage {
 				->caller( __METHOD__ )
 				->fetchField();
 
+			// Skip deleted/unpinned releases that have no active pins
+			$isDeleted = !empty( $data['delete'] );
+			$isUnpinned = !empty( $data['unpin'] );
+			$pinnedOn = $data['pinned_on'] ?? null;
+			$hasActivePins = !empty( $pinnedOn );
+
+			if ( ( $isDeleted || $isUnpinned ) && !$hasActivePins ) {
+				continue;
+			}
+
 			$releases[] = [
 				'page_title' => $row->page_title,
 				'title_obj' => $title,
@@ -130,7 +140,7 @@ class SpecialReleases extends SpecialPage {
 				'release_type' => $data['release_type'] ?? null,
 				'file_type' => $data['file_type'] ?? null,
 				'file_size' => isset( $data['file_size'] ) ? (int)$data['file_size'] : null,
-				'pinned_on' => $data['pinned_on'] ?? null,
+				'pinned_on' => $pinnedOn,
 				'backlinks' => (int)$backlinkCount,
 			];
 		}
