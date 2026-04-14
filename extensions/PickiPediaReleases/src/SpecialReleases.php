@@ -211,6 +211,7 @@ class SpecialReleases extends SpecialPage {
 
 		// Header
 		$html .= Html::openElement( 'tr' );
+		$html .= Html::element( 'th', [ 'class' => 'unsortable' ], '' );
 		$html .= Html::element( 'th', [], 'CID' );
 		$html .= Html::element( 'th', [], 'Title' );
 		$html .= Html::element( 'th', [], 'Type' );
@@ -236,8 +237,32 @@ class SpecialReleases extends SpecialPage {
 	private function renderRow( array $release ): string {
 		$html = Html::openElement( 'tr' );
 
-		// CID — truncated, linked to the Release page
+		// Thumbnail
 		$cid = $release['page_title'];
+		$thumbHtml = '';
+		$services = MediaWikiServices::getInstance();
+		$repoGroup = $services->getRepoGroup();
+
+		// Check for uploaded thumbnail (Blue Railroad tokens have these)
+		$normalizedCid = str_starts_with( $cid, 'Bafy' ) ? strtolower( $cid ) : $cid;
+		$thumbFile = $repoGroup->findFile( "Blue_Railroad_Video_{$normalizedCid}.jpg" );
+		if ( $thumbFile && $thumbFile->exists() ) {
+			$thumb = $thumbFile->transform( [ 'width' => 60 ] );
+			if ( $thumb ) {
+				$thumbHtml = Html::rawElement( 'a', [
+					'href' => $release['title_obj']->getLocalURL(),
+				], Html::element( 'img', [
+					'src' => $thumb->getUrl(),
+					'width' => 60,
+					'loading' => 'lazy',
+				] ) );
+			}
+		}
+		$html .= Html::rawElement( 'td', [
+			'style' => 'padding:2px; text-align:center; width:64px;',
+		], $thumbHtml );
+
+		// CID — truncated, linked to the Release page
 		$shortCid = substr( $cid, 0, 12 ) . '…';
 		$html .= Html::rawElement( 'td', [ 'class' => 'release-cid-cell' ],
 			Html::element( 'a', [

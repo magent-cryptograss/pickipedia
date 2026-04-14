@@ -292,6 +292,17 @@ YAML;
 				'data-width' => '100%',
 				'data-max-width' => '800px',
 			] );
+
+			// Embed snippet
+			$normalizedCid = str_starts_with( $cid, 'Bafy' ) ? strtolower( $cid ) : $cid;
+			$embedCode = "{{HLSVideo|{$normalizedCid}}}";
+			$html .= Html::rawElement( 'details', [ 'class' => 'release-embed', 'style' => 'margin:0.5em 0;' ],
+				Html::element( 'summary', [], 'Embed this video' ) .
+				Html::element( 'code', [
+					'class' => 'release-embed-code',
+					'style' => 'display:block; padding:0.5em; background:#f8f8f8; user-select:all; cursor:pointer;',
+				], $embedCode )
+			);
 		}
 
 		// Title from YAML
