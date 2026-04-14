@@ -293,16 +293,6 @@ YAML;
 				'data-max-width' => '800px',
 			] );
 
-			// Embed snippet
-			$normalizedCid = str_starts_with( $cid, 'Bafy' ) ? strtolower( $cid ) : $cid;
-			$embedCode = "{{HLSVideo|{$normalizedCid}}}";
-			$html .= Html::rawElement( 'details', [ 'class' => 'release-embed', 'style' => 'margin:0.5em 0;' ],
-				Html::element( 'summary', [], 'Embed this video' ) .
-				Html::element( 'code', [
-					'class' => 'release-embed-code',
-					'style' => 'display:block; padding:0.5em; background:#f8f8f8; user-select:all; cursor:pointer;',
-				], $embedCode )
-			);
 		}
 
 		// Title from YAML
@@ -367,6 +357,25 @@ YAML;
 				$info[] = $this->formatFileSize( (int)$data['file_size'] );
 			}
 			$html .= Html::rawElement( 'td', [], implode( ' · ', $info ) );
+			$html .= Html::closeElement( 'tr' );
+		}
+
+		// Embed code for video releases
+		if ( $cid && $isVideo ) {
+			$normalizedCid = str_starts_with( $cid, 'Bafy' ) ? strtolower( $cid ) : $cid;
+			$embedCode = "{{HLSVideo|{$normalizedCid}}}";
+			$html .= Html::openElement( 'tr' );
+			$html .= Html::element( 'th', [], 'Embed' );
+			$html .= Html::rawElement( 'td', [],
+				Html::element( 'code', [
+					'id' => 'release-embed-code',
+				], $embedCode ) . ' ' .
+				Html::element( 'button', [
+					'class' => 'release-copy-btn',
+					'onclick' => "navigator.clipboard.writeText('" . htmlspecialchars( $embedCode, ENT_QUOTES ) . "').then(function(){var b=event.target;b.textContent='Copied!';setTimeout(function(){b.textContent='Copy'},1500)})",
+					'style' => 'cursor:pointer; padding:2px 8px;',
+				], 'Copy' )
+			);
 			$html .= Html::closeElement( 'tr' );
 		}
 
