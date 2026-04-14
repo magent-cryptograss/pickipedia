@@ -128,6 +128,9 @@ YAML;
 		// 1. Explicit file_type in YAML
 		// 2. Inferred from backlinks (pages using HLSVideo template link here)
 		$isVideo = !empty( $data['file_type'] ) && str_starts_with( $data['file_type'], 'video/' );
+		if ( !$isVideo && ( $data['release_type'] ?? '' ) === 'video' ) {
+			$isVideo = true;
+		}
 		if ( !$isVideo && $pageRef ) {
 			$isVideo = $this->hasHLSVideoBacklink( $pageRef );
 		}
