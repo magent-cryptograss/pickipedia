@@ -363,7 +363,7 @@ YAML;
 		// Embed code for video releases
 		if ( $cid && $isVideo ) {
 			$normalizedCid = str_starts_with( $cid, 'Bafy' ) ? strtolower( $cid ) : $cid;
-			$embedCode = "{{HLSVideo|{$normalizedCid}}}";
+			$embedCode = "{{HLSVideo|{$normalizedCid}|width=400px}}";
 			$html .= Html::openElement( 'tr' );
 			$html .= Html::element( 'th', [], 'Embed' );
 			$html .= Html::rawElement( 'td', [],
