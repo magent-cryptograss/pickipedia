@@ -42,6 +42,7 @@
 	},
 	"SpecialPages": {
 		"Releases": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialReleases",
+		"ReleaseDrafts": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialReleaseDrafts",
 		"DeliverOtherContent": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverOtherContent",
 		"DeliverRecord": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverRecord",
 		"DeliverVideo": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverVideo",

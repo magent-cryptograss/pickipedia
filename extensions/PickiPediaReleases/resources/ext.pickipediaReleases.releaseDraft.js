@@ -518,6 +518,12 @@
 		}
 
 		finalizeBtn.addEventListener( 'click', function () {
+			if ( isRefinalize ) {
+				if ( !confirm( 'Re-finalize this draft? This will re-transcode and create a new IPFS pin with a new CID.' ) ) {
+					return;
+				}
+			}
+
 			var data = collectFormData();
 			var draftId = data.draft_id;
 			// See collectFormData() for where draftType originates
@@ -838,9 +844,13 @@
 			if ( logEl ) {
 				logEl.innerHTML += linkHtml;
 			}
+
+			// Re-enable finalize as "Re-finalize" for redo scenarios
+			enableRefinalize();
 		} ).fail( function ( code, result ) {
 			setStatus( 'Pinned to IPFS but failed to save draft: ' +
 				( result.error ? result.error.info : code ) + '. CID: ' + cid, 'error' );
+			enableRefinalize();
 		} );
 	}
 
@@ -859,10 +869,27 @@
 			appendLog( 'Draft saved. Transcoding will complete asynchronously.' );
 			appendLog( 'When transcoding finishes, the HLS output will be pinned to IPFS.' );
 			appendLog( 'The bot will then create the Release page.' );
+			enableRefinalize();
 		} ).fail( function ( code, result ) {
 			appendLog( 'Warning: failed to save draft page: ' +
 				( result.error ? result.error.info : code ) );
+			enableRefinalize();
 		} );
+	}
+
+	var isRefinalize = false;
+
+	function enableRefinalize() {
+		var finalizeBtn = el( 'rd-finalize-btn' );
+		var saveBtn = el( 'rd-save-btn' );
+		if ( finalizeBtn ) {
+			finalizeBtn.disabled = false;
+			finalizeBtn.textContent = 'Re-finalize & Pin to IPFS';
+			isRefinalize = true;
+		}
+		if ( saveBtn ) {
+			saveBtn.disabled = false;
+		}
 	}
 
 	// -- Blockheight converter --
