@@ -222,6 +222,14 @@ $wgMaxUploadSize = 1024 * 1024 * 1024;  // 1GB in bytes - bigger things can go t
 
 $wgMediaUploaderConfig['licensing']['enabled'] = false;
 
+# Make all fields optional — upload quickly, especially on mobile.
+# '' = optional (no warning modal); 'recommended' = warns; 'required' = blocks.
+# autoFill defaults stay on, so EXIF/filename still pre-populate when available.
+$wgMediaUploaderConfig['fields']['title']['required'] = '';
+$wgMediaUploaderConfig['fields']['description']['required'] = '';
+$wgMediaUploaderConfig['fields']['date']['required'] = '';
+$wgMediaUploaderConfig['fields']['categories']['required'] = '';
+
 
 # TimedMediaHandler - video/audio playback with transcoding
 wfLoadExtension( 'TimedMediaHandler' );
