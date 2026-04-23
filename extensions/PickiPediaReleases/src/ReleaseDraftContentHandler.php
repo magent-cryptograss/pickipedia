@@ -100,6 +100,11 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 			$html .= $this->renderValidationErrors( $validation );
 		}
 
+		// Abandoned banner (shown above the normal status)
+		if ( $content->isAbandoned() ) {
+			$html .= $this->renderAbandonedBanner( $content->getAbandonedReason() );
+		}
+
 		// Status banner
 		$html .= $this->renderStatusBanner( $status, $data );
 
@@ -134,6 +139,18 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 
 		// Categories
 		$output->addCategory( 'Release_Drafts' );
+	}
+
+	private function renderAbandonedBanner( ?string $reason ): string {
+		$text = 'This draft has been abandoned.';
+		if ( $reason !== null ) {
+			$text .= ' Reason: ' . $reason;
+		}
+		return Html::rawElement( 'div', [
+			'class' => 'release-draft-abandoned-banner',
+			'style' => 'background:#f8d7da; border:2px solid #a94442; padding:1em; '
+				. 'margin-bottom:1em; border-radius:4px; color:#58151c;',
+		], Html::element( 'strong', [], $text ) );
 	}
 
 	private function renderStatusBanner( string $status, array $data ): string {

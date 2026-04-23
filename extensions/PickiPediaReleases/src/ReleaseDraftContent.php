@@ -111,6 +111,15 @@ class ReleaseDraftContent extends TextContent {
 		return $this->getData()['files'] ?? [];
 	}
 
+	public function isAbandoned(): bool {
+		return (bool)( $this->getData()['abandoned'] ?? false );
+	}
+
+	public function getAbandonedReason(): ?string {
+		$reason = $this->getData()['abandoned_reason'] ?? null;
+		return is_string( $reason ) && $reason !== '' ? $reason : null;
+	}
+
 	public function getAlbumTitle(): ?string {
 		return $this->getAlbumData()['title'] ?? null;
 	}

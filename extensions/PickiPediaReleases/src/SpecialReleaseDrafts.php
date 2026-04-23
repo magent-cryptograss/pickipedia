@@ -44,8 +44,11 @@ class SpecialReleaseDrafts extends SpecialPage {
 		// Separate by status
 		$complete = [];
 		$pending = [];
+		$abandoned = [];
 		foreach ( $drafts as $d ) {
-			if ( $d['status'] === 'finalized' ) {
+			if ( $d['abandoned'] ) {
+				$abandoned[] = $d;
+			} elseif ( $d['status'] === 'finalized' ) {
 				$complete[] = $d;
 			} else {
 				$pending[] = $d;
@@ -66,6 +69,14 @@ class SpecialReleaseDrafts extends SpecialPage {
 				count( $complete ) . ( count( $complete ) === 1 ? ' draft' : ' drafts' )
 			) );
 			$out->addHTML( $this->renderTable( $complete ) );
+		}
+
+		if ( $abandoned ) {
+			$out->addHTML( Html::element( 'h2', [], 'Abandoned Drafts' ) );
+			$out->addHTML( Html::element( 'p', [],
+				count( $abandoned ) . ( count( $abandoned ) === 1 ? ' draft' : ' drafts' )
+			) );
+			$out->addHTML( $this->renderTable( $abandoned ) );
 		}
 	}
 
@@ -143,6 +154,7 @@ class SpecialReleaseDrafts extends SpecialPage {
 				'status' => $status,
 				'cid' => $cid,
 				'has_release' => $hasRelease,
+				'abandoned' => (bool)( $data['abandoned'] ?? false ),
 				'touched' => $row->page_touched,
 			];
 		}
