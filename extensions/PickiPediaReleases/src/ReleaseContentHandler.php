@@ -102,7 +102,10 @@ YAML;
 		// Get optional YAML metadata
 		$data = $content->getData();
 
-		// Show banner for deleted or unpinned releases
+		// Show banner for deleted or unpinned releases. The "cleanup pending"
+		// variants appear when the YAML is marked for removal but pinned_on
+		// still lists active infrastructure — i.e. audit-storage.py will flag
+		// it and purge-deleted-releases.py needs to run.
 		$isDeleted = !empty( $data['delete'] );
 		$isUnpinned = !empty( $data['unpin'] );
 		$pinnedOn = $data['pinned_on'] ?? null;
@@ -121,6 +124,16 @@ YAML;
 				'style' => 'background:#fee; border:2px solid #c00; padding:1em; margin-bottom:1em; border-radius:4px;',
 			], Html::element( 'strong', [ 'style' => 'color:#c00;' ],
 				'This release has been unpinned and is no longer distributed.'
+			) );
+		} elseif ( $isDeleted || $isUnpinned ) {
+			$action = $isDeleted ? 'deletion' : 'unpinning';
+			$html .= Html::rawElement( 'div', [
+				'class' => 'release-cleanup-pending-banner',
+				'style' => 'background:#fff3cd; border:2px solid #b8860b; padding:1em; margin-bottom:1em; border-radius:4px;',
+			], Html::element( 'strong', [ 'style' => 'color:#8a6d00;' ],
+				"This release is marked for {$action}, but infrastructure " .
+				"(pinned_on: " . implode( ', ', (array)$pinnedOn ) . ") is still active. " .
+				"Cleanup is pending."
 			) );
 		}
 
