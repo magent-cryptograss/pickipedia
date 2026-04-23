@@ -50,9 +50,11 @@ class Hooks implements EditFilterMergedContentHook {
 		$config = MediaWikiServices::getInstance()->getMainConfig();
 		$title = $context->getTitle();
 
-		// Never apply to infrastructure namespaces
+		// Never apply to infrastructure namespaces or any talk page.
+		// Talk pages are for discussion — bot/agent posts there shouldn't be
+		// gated behind verification; that's where humans and agents coordinate.
 		$exemptNamespaces = [ NS_MEDIAWIKI, NS_TEMPLATE, NS_CATEGORY, 828 /* Module */ ];
-		if ( in_array( $title->getNamespace(), $exemptNamespaces, true ) ) {
+		if ( in_array( $title->getNamespace(), $exemptNamespaces, true ) || $title->isTalkPage() ) {
 			return true;
 		}
 
