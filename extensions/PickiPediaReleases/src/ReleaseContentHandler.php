@@ -110,31 +110,38 @@ YAML;
 		$isUnpinned = !empty( $data['unpin'] );
 		$pinnedOn = $data['pinned_on'] ?? null;
 		$hasActivePins = !empty( $pinnedOn );
+		$removalReason = isset( $data['removal_reason'] ) && is_string( $data['removal_reason'] )
+			? trim( $data['removal_reason'] ) : '';
+
+		$reasonHtml = $removalReason !== ''
+			? Html::rawElement( 'div', [ 'style' => 'margin-top:0.5em; font-weight:normal;' ],
+				Html::element( 'em', [], 'Reason: ' ) . htmlspecialchars( $removalReason ) )
+			: '';
 
 		if ( $isDeleted && !$hasActivePins ) {
 			$html .= Html::rawElement( 'div', [
 				'class' => 'release-deleted-banner',
 				'style' => 'background:#fee; border:2px solid #c00; padding:1em; margin-bottom:1em; border-radius:4px;',
-			], Html::element( 'strong', [ 'style' => 'color:#c00;' ],
+			], Html::rawElement( 'strong', [ 'style' => 'color:#c00;' ],
 				'This release has been deleted and is no longer pinned or distributed.'
-			) );
+			) . $reasonHtml );
 		} elseif ( $isUnpinned && !$hasActivePins ) {
 			$html .= Html::rawElement( 'div', [
 				'class' => 'release-unpinned-banner',
 				'style' => 'background:#fee; border:2px solid #c00; padding:1em; margin-bottom:1em; border-radius:4px;',
-			], Html::element( 'strong', [ 'style' => 'color:#c00;' ],
+			], Html::rawElement( 'strong', [ 'style' => 'color:#c00;' ],
 				'This release has been unpinned and is no longer distributed.'
-			) );
+			) . $reasonHtml );
 		} elseif ( $isDeleted || $isUnpinned ) {
 			$action = $isDeleted ? 'deletion' : 'unpinning';
 			$html .= Html::rawElement( 'div', [
 				'class' => 'release-cleanup-pending-banner',
 				'style' => 'background:#fff3cd; border:2px solid #b8860b; padding:1em; margin-bottom:1em; border-radius:4px;',
-			], Html::element( 'strong', [ 'style' => 'color:#8a6d00;' ],
+			], Html::rawElement( 'strong', [ 'style' => 'color:#8a6d00;' ],
 				"This release is marked for {$action}, but infrastructure " .
 				"(pinned_on: " . implode( ', ', (array)$pinnedOn ) . ") is still active. " .
 				"Cleanup is pending."
-			) );
+			) . $reasonHtml );
 		}
 
 		// Determine if this release is a video:
