@@ -14,6 +14,9 @@
 		'X-Upload-Timestamp': String( mw.config.get( 'wgUploadTimestamp' ) )
 	};
 
+	// Re-upload mode: ?redraft=<id> reuses an existing draft_id.
+	var REDRAFT_ID = new URLSearchParams( window.location.search ).get( 'redraft' );
+
 	// -- Helpers --
 
 	function el( id ) {
@@ -127,6 +130,9 @@
 		Object.keys( AUTH_HEADERS ).forEach( function ( key ) {
 			xhr.setRequestHeader( key, AUTH_HEADERS[ key ] );
 		} );
+		if ( REDRAFT_ID ) {
+			xhr.setRequestHeader( 'X-Draft-Id', REDRAFT_ID );
+		}
 
 		xhr.upload.addEventListener( 'progress', function ( e ) {
 			if ( e.lengthComputable ) {
@@ -201,23 +207,28 @@
 
 		var yaml = buildAlbumYaml( draftId, draft.commit || 'unknown', tracks );
 
-		var api = new mw.Api();
-		api.postWithEditToken( {
+		var isRedraft = !!REDRAFT_ID;
+		var editParams = {
 			action: 'edit',
 			title: pageName,
 			text: yaml,
-			summary: 'New album draft: ' + draft.files.length + ' tracks uploaded',
-			createonly: true
-		} ).then( function () {
-			// Redirect to the new draft page
+			summary: isRedraft
+				? 'Re-upload: ' + draft.files.length + ' tracks uploaded'
+				: 'New album draft: ' + draft.files.length + ' tracks uploaded'
+		};
+		if ( !isRedraft ) {
+			editParams.createonly = true;
+		}
+
+		var api = new mw.Api();
+		api.postWithEditToken( editParams ).then( function () {
 			window.location.href = mw.util.getUrl( pageName );
 		} ).fail( function ( code, result ) {
-			if ( code === 'articleexists' ) {
-				// Draft page already exists (maybe re-upload?) — just redirect
+			if ( code === 'articleexists' && !isRedraft ) {
 				window.location.href = mw.util.getUrl( pageName );
 			} else {
 				setStatus( 'ua-upload-status',
-					'Failed to create draft page: ' + ( result.error ? result.error.info : code ), 'error' );
+					'Failed to save draft page: ' + ( result.error ? result.error.info : code ), 'error' );
 				el( 'ua-upload-btn' ).disabled = false;
 			}
 		} );

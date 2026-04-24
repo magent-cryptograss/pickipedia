@@ -14,6 +14,9 @@
 		'X-Upload-Timestamp': String( mw.config.get( 'wgUploadTimestamp' ) )
 	};
 
+	// Re-upload mode: ?redraft=<id> reuses an existing draft_id.
+	var REDRAFT_ID = new URLSearchParams( window.location.search ).get( 'redraft' );
+
 	// -- Helpers --
 
 	function el( id ) {
@@ -242,6 +245,9 @@
 		Object.keys( AUTH_HEADERS ).forEach( function ( key ) {
 			xhr.setRequestHeader( key, AUTH_HEADERS[ key ] );
 		} );
+		if ( REDRAFT_ID ) {
+			xhr.setRequestHeader( 'X-Draft-Id', REDRAFT_ID );
+		}
 
 		xhr.upload.addEventListener( 'progress', function ( e ) {
 			if ( e.lengthComputable ) {
@@ -304,21 +310,28 @@
 		var yaml = buildBlueRailroadYaml( draftId, draft );
 
 		var exercise = ( el( 'dv-exercise' ) || {} ).value || '';
-		var api = new mw.Api();
-		api.postWithEditToken( {
+		var isRedraft = !!REDRAFT_ID;
+		var editParams = {
 			action: 'edit',
 			title: pageName,
 			text: yaml,
-			summary: 'New Blue Railroad draft: ' + exercise,
-			createonly: true
-		} ).then( function () {
+			summary: isRedraft
+				? 'Re-upload: ' + exercise
+				: 'New Blue Railroad draft: ' + exercise
+		};
+		if ( !isRedraft ) {
+			editParams.createonly = true;
+		}
+
+		var api = new mw.Api();
+		api.postWithEditToken( editParams ).then( function () {
 			window.location.href = mw.util.getUrl( pageName );
 		} ).fail( function ( code, result ) {
-			if ( code === 'articleexists' ) {
+			if ( code === 'articleexists' && !isRedraft ) {
 				window.location.href = mw.util.getUrl( pageName );
 			} else {
 				setStatus( 'dv-upload-status',
-					'Failed to create draft page: ' + ( result.error ? result.error.info : code ), 'error' );
+					'Failed to save draft page: ' + ( result.error ? result.error.info : code ), 'error' );
 				el( 'dv-upload-btn' ).disabled = false;
 			}
 		} );
