@@ -21,6 +21,7 @@ use MediaWiki\Content\TextContentHandler;
 use MediaWiki\Content\ValidationParams;
 use MediaWiki\Html\Html;
 use MediaWiki\Parser\ParserOutput;
+use MediaWiki\SpecialPage\SpecialPage;
 use StatusValue;
 use Symfony\Component\Yaml\Yaml;
 
@@ -670,8 +671,25 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		return $html;
 	}
 
+	/** Map a draft type string to the Special page that handles its upload. */
+	private function specialForDraftType( string $type ): string {
+		switch ( $type ) {
+			case 'record':
+			case 'album':
+				return 'DeliverRecord';
+			case 'video':
+				return 'DeliverVideo';
+			case 'blue-railroad':
+				return 'DeliverBlueRailroad';
+			default:
+				return 'DeliverOtherContent';
+		}
+	}
+
 	private function renderActions( array $data ): string {
 		$draftId = $data['draft_id'] ?? '';
+		$type = $data['type'] ?? 'other';
+		$abandoned = (bool)( $data['abandoned'] ?? false );
 
 		$html = Html::openElement( 'div', [ 'class' => 'rd-actions', 'id' => 'rd-actions' ] );
 
@@ -680,6 +698,21 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 			'id' => 'rd-save-btn',
 			'class' => 'cdx-button cdx-button--action-progressive',
 		], 'Save Draft' );
+
+		// Re-upload — takes user to the matching Special:Deliver* page with
+		// ?redraft=<id>. Server-side, delivery-kid wipes the staging dir and
+		// reuses the draft_id. Hidden on abandoned drafts.
+		if ( $draftId && !$abandoned ) {
+			$specialName = $this->specialForDraftType( $type );
+			$specialTitle = SpecialPage::getTitleFor( $specialName );
+			$reuploadUrl = $specialTitle->getLocalURL( [ 'redraft' => $draftId ] );
+			$html .= Html::element( 'a', [
+				'href' => $reuploadUrl,
+				'class' => 'cdx-button cdx-button--action-default',
+				'title' => 'Replace the uploaded files for this draft. '
+					. 'The existing files on delivery-kid will be wiped first.',
+			], 'Re-upload files' );
+		}
 
 		// Preserve original checkbox
 		$html .= Html::openElement( 'label', [
