@@ -227,10 +227,12 @@
 
 	function doUpload( files ) {
 		var uploadBtn = el( 'dv-upload-btn' );
+		var cancelBtn = el( 'dv-cancel-btn' );
 		var progressBar = el( 'dv-upload-progress' );
 		var progressFill = progressBar.querySelector( '.uc-progress-fill' );
 
 		uploadBtn.disabled = true;
+		cancelBtn.style.display = '';
 		progressBar.style.display = '';
 		setStatus( 'dv-upload-status', 'Uploading ' + files.length + ' file(s)...', '' );
 
@@ -261,6 +263,7 @@
 
 		xhr.addEventListener( 'load', function () {
 			progressBar.style.display = 'none';
+			cancelBtn.style.display = 'none';
 
 			if ( xhr.status !== 200 ) {
 				var errMsg;
@@ -294,9 +297,22 @@
 
 		xhr.addEventListener( 'error', function () {
 			progressBar.style.display = 'none';
+			cancelBtn.style.display = 'none';
 			setStatus( 'dv-upload-status', 'Network error during upload.', 'error' );
 			uploadBtn.disabled = false;
 		} );
+
+		xhr.addEventListener( 'abort', function () {
+			progressBar.style.display = 'none';
+			progressFill.style.width = '0%';
+			cancelBtn.style.display = 'none';
+			setStatus( 'dv-upload-status', 'Upload cancelled.', '' );
+			uploadBtn.disabled = false;
+		} );
+
+		cancelBtn.onclick = function () {
+			xhr.abort();
+		};
 
 		xhr.send( formData );
 	}

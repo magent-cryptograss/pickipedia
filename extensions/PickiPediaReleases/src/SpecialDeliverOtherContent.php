@@ -86,6 +86,7 @@ class SpecialDeliverOtherContent extends SpecialPage {
 		$html .= '</div>';
 		$html .= '<div id="uc-file-list" class="uc-file-list"></div>';
 		$html .= '<button id="uc-upload-btn" class="cdx-button cdx-button--action-progressive cdx-button--weight-primary" disabled>Upload &amp; Analyze</button>';
+		$html .= '<button id="uc-cancel-btn" class="cdx-button cdx-button--action-destructive" style="display:none">Cancel upload</button>';
 		$html .= '<div id="uc-upload-progress" class="uc-progress-bar" style="display:none"><div class="uc-progress-fill"></div></div>';
 		$html .= '<div id="uc-upload-status" class="uc-status"></div>';
 		$html .= '</div>';

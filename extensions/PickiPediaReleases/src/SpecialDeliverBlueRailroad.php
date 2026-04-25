@@ -126,6 +126,7 @@ class SpecialDeliverBlueRailroad extends SpecialPage {
 		$html .= '</div>';
 
 		$html .= '<button id="dv-upload-btn" class="cdx-button cdx-button--action-progressive cdx-button--weight-primary" disabled>Upload</button>';
+		$html .= '<button id="dv-cancel-btn" class="cdx-button cdx-button--action-destructive" style="display:none">Cancel upload</button>';
 		$html .= '<div id="dv-upload-progress" class="uc-progress-bar" style="display:none"><div class="uc-progress-fill"></div></div>';
 		$html .= '<div id="dv-upload-status" class="uc-status"></div>';
 		$html .= '<p class="uc-hint">Video will be transcoded to AV1 HLS on finalization.</p>';
