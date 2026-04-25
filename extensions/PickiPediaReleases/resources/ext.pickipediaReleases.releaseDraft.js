@@ -1213,11 +1213,19 @@
 			fetch( deliveryKidUrl + '/draft-content/' + draftId, {
 				headers: headers
 			} ).then( function ( resp ) {
+				if ( resp.status === 403 ) {
+					showPreviewStatus( 'Log in with an account that can view this draft to see a preview.' );
+					return null;
+				}
 				if ( resp.status === 404 ) {
 					showPreviewStatus( 'Draft not found on delivery-kid. Files may have expired from staging.' );
 					return null;
 				}
-				return resp.ok ? resp.json() : null;
+				if ( !resp.ok ) {
+					showPreviewStatus( 'Preview unavailable (' + resp.status + ').' );
+					return null;
+				}
+				return resp.json();
 			} ).then( function ( data ) {
 				if ( !data ) {
 					return;
