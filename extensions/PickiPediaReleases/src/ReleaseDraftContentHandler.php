@@ -766,7 +766,44 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 
 		$html .= Html::closeElement( 'div' );
 
+		// Abandon controls — only on still-active (not abandoned, not finalized)
+		// drafts. Two destructive choices: keep the staging files (e.g. so
+		// they're recoverable later) vs delete them now via delivery-kid's
+		// DELETE /content/<id> endpoint.
+		$status = $this->statusForActions( $data );
+		if ( $draftId && !$abandoned && $status === 'draft' ) {
+			$html .= Html::openElement( 'details', [ 'class' => 'rd-abandon-controls' ] );
+			$html .= Html::element( 'summary', [], 'Abandon this draft' );
+			$html .= Html::element( 'p', [ 'class' => 'rd-abandon-explainer' ],
+				'When you decide not to finalize, you can mark this draft as '
+				. 'abandoned. Choose whether to delete the uploaded files now '
+				. 'or keep them on delivery-kid for later recovery.' );
+			$html .= Html::element( 'button', [
+				'type' => 'button',
+				'id' => 'rd-abandon-keep-btn',
+				'class' => 'cdx-button cdx-button--action-default',
+			], 'Abandon — keep files' );
+			$html .= Html::element( 'button', [
+				'type' => 'button',
+				'id' => 'rd-abandon-delete-btn',
+				'class' => 'cdx-button cdx-button--action-destructive',
+			], 'Abandon — delete files' );
+			$html .= Html::closeElement( 'details' );
+		}
+
 		return $html;
+	}
+
+	/**
+	 * Best-effort status determination for renderActions — mirrors the
+	 * "draft" / "finalizing" / "complete" set the status banner uses.
+	 */
+	private function statusForActions( array $data ): string {
+		$resultCid = $data['result']['cid'] ?? null;
+		if ( $resultCid ) {
+			return 'complete';
+		}
+		return 'draft';
 	}
 
 	/**

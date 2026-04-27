@@ -313,6 +313,18 @@
 			lines.push( 'upload_blockheight: ' + data.upload_blockheight );
 		}
 
+		// Abandonment markers (set by the abandon buttons in renderActions).
+		// Preserved through serialize so subsequent saves don't lose them.
+		if ( data.abandoned ) {
+			lines.push( 'abandoned: true' );
+			if ( data.abandoned_reason ) {
+				lines.push( 'abandoned_reason: ' + quoteYamlValue( data.abandoned_reason ) );
+			}
+			if ( data.abandoned_keep_files ) {
+				lines.push( 'abandoned_keep_files: true' );
+			}
+		}
+
 		// Type-specific payload
 		if ( draftType === 'record' || draftType === 'album' ) {
 			lines.push( 'album:' );
@@ -1327,6 +1339,89 @@
 		} );
 	}
 
+	// Mark this draft as abandoned. `keepFiles` controls whether we also
+	// hit delivery-kid's DELETE /content/<id> to wipe the staging dir.
+	// Either way, the wiki page YAML is updated so the audit and the
+	// SpecialReleaseDrafts listing recognize the new status.
+	function abandonDraft( keepFiles ) {
+		var draftId = ( draftData && draftData.draft_id ) || '';
+		if ( !draftId ) {
+			return;
+		}
+
+		var prompt_ = keepFiles
+			? 'Abandon this draft and keep the uploaded files on delivery-kid?\n\nReason (optional):'
+			: 'Abandon this draft AND DELETE the uploaded files from delivery-kid?\n\nReason (optional):';
+		// eslint-disable-next-line no-alert
+		var reason = window.prompt( prompt_, '' );
+		if ( reason === null ) {
+			return; // user cancelled
+		}
+
+		var deliveryKidUrl = mw.config.get( 'wgDeliveryKidUrl' );
+		var token = mw.config.get( 'wgFinalizeToken' ) || mw.config.get( 'wgUploadToken' );
+		var user = mw.config.get( 'wgUploadUser' );
+		var timestamp = mw.config.get( 'wgUploadTimestamp' );
+
+		var deleteOnDk = !keepFiles ? fetch(
+			deliveryKidUrl + '/content/' + encodeURIComponent( draftId ),
+			{
+				method: 'DELETE',
+				headers: {
+					'X-Upload-Token': token,
+					'X-Upload-User': user,
+					'X-Upload-Timestamp': String( timestamp )
+				}
+			}
+		).then( function ( resp ) {
+			// 404 is fine — staging may already be gone (e.g. older draft).
+			if ( !resp.ok && resp.status !== 404 ) {
+				throw new Error( 'delivery-kid DELETE failed: ' + resp.status );
+			}
+		} ) : Promise.resolve();
+
+		deleteOnDk.then( function () {
+			var data = collectFormData();
+			data.abandoned = true;
+			data.abandoned_reason = reason;
+			data.abandoned_keep_files = !!keepFiles;
+			var yaml = serializeToYaml( data );
+
+			var summary = keepFiles
+				? 'Abandon draft (files kept)'
+				: 'Abandon draft and delete files';
+			if ( reason ) {
+				summary += ': ' + reason;
+			}
+
+			return new mw.Api().postWithEditToken( {
+				action: 'edit',
+				title: mw.config.get( 'wgPageName' ),
+				text: yaml,
+				summary: summary
+			} );
+		} ).then( function () {
+			window.location.reload();
+		} ).catch( function ( err ) {
+			// eslint-disable-next-line no-alert
+			window.alert(
+				'Could not abandon: ' + ( err && err.message ? err.message : err ) +
+				'\nThe wiki page may not have been updated.'
+			);
+		} );
+	}
+
+	function initAbandonButtons() {
+		var keepBtn = el( 'rd-abandon-keep-btn' );
+		var deleteBtn = el( 'rd-abandon-delete-btn' );
+		if ( keepBtn ) {
+			keepBtn.addEventListener( 'click', function () { abandonDraft( true ); } );
+		}
+		if ( deleteBtn ) {
+			deleteBtn.addEventListener( 'click', function () { abandonDraft( false ); } );
+		}
+	}
+
 	function init() {
 		initTrackDragReorder();
 		initSaveButton();
@@ -1335,6 +1430,7 @@
 		initVideoPreview();
 		initCreationTimeFallback();
 		initDownloadLinks();
+		initAbandonButtons();
 	}
 
 	mw.loader.using( [ 'mediawiki.util', 'mediawiki.api' ] ).then( init );
