@@ -1300,6 +1300,33 @@
 		}
 	}
 
+	// Set href on every <a class="rd-download-original"> in the file tables,
+	// using the upload token JS config that's freshly generated on every page
+	// render. Using JS keeps the auth params out of the parser-cached HTML.
+	function initDownloadLinks() {
+		var deliveryKidUrl = mw.config.get( 'wgDeliveryKidUrl' );
+		var token = mw.config.get( 'wgFinalizeToken' ) || mw.config.get( 'wgUploadToken' );
+		var user = mw.config.get( 'wgUploadUser' );
+		var timestamp = mw.config.get( 'wgUploadTimestamp' );
+		if ( !deliveryKidUrl || !token ) {
+			return;
+		}
+		var links = document.querySelectorAll( 'a.rd-download-original' );
+		Array.prototype.forEach.call( links, function ( link ) {
+			var draftId = link.getAttribute( 'data-draft-id' );
+			var filename = link.getAttribute( 'data-filename' );
+			if ( !draftId || !filename ) {
+				return;
+			}
+			link.href = deliveryKidUrl + '/staging/drafts/' +
+				encodeURIComponent( draftId ) + '/' +
+				encodeURIComponent( filename ) +
+				'?token=' + encodeURIComponent( token ) +
+				'&user=' + encodeURIComponent( user ) +
+				'&timestamp=' + encodeURIComponent( timestamp );
+		} );
+	}
+
 	function init() {
 		initTrackDragReorder();
 		initSaveButton();
@@ -1307,6 +1334,7 @@
 		initBlockheightConverter();
 		initVideoPreview();
 		initCreationTimeFallback();
+		initDownloadLinks();
 	}
 
 	mw.loader.using( [ 'mediawiki.util', 'mediawiki.api' ] ).then( init );

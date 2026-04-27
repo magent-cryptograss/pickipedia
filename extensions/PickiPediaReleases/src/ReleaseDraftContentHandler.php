@@ -383,9 +383,10 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 			$html .= Html::openElement( 'table', [ 'class' => 'wikitable' ] );
 			$html .= '<tr><th>File</th><th>Type</th><th>Format</th><th>Size</th></tr>';
 
+			$draftIdForFiles = $data['draft_id'] ?? '';
 			foreach ( $files as $f ) {
 				$html .= Html::openElement( 'tr' );
-				$html .= Html::element( 'td', [], $f['original_filename'] ?? '' );
+				$html .= $this->renderFilenameCell( $f['original_filename'] ?? '', $draftIdForFiles );
 				$html .= Html::element( 'td', [], $f['media_type'] ?? '' );
 				$html .= Html::element( 'td', [], $f['format'] ?? '' );
 				$sizeStr = !empty( $f['size_bytes'] ) ? $this->formatSize( (int)$f['size_bytes'] ) : '';
@@ -492,9 +493,10 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 			$html .= Html::openElement( 'table', [ 'class' => 'wikitable' ] );
 			$html .= '<tr><th>File</th><th>Type</th><th>Format</th><th>Size</th></tr>';
 
+			$draftIdForFiles = $data['draft_id'] ?? '';
 			foreach ( $files as $f ) {
 				$html .= Html::openElement( 'tr' );
-				$html .= Html::element( 'td', [], $f['original_filename'] ?? '' );
+				$html .= $this->renderFilenameCell( $f['original_filename'] ?? '', $draftIdForFiles );
 				$html .= Html::element( 'td', [], $f['media_type'] ?? '' );
 				$html .= Html::element( 'td', [], $f['format'] ?? '' );
 				$sizeStr = !empty( $f['size_bytes'] ) ? $this->formatSize( (int)$f['size_bytes'] ) : '';
@@ -764,6 +766,30 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 
 		$html .= Html::closeElement( 'div' );
 
+		return $html;
+	}
+
+	/**
+	 * Render a file-list "File" cell with a download link to the staging file.
+	 *
+	 * The link starts unauth'd; releaseDraft.js hydrates the href on init using
+	 * the per-render upload token from JS config, so the auth params are fresh
+	 * with each page load (and not baked into MediaWiki's parser cache).
+	 */
+	private function renderFilenameCell( string $filename, string $draftId ): string {
+		if ( $filename === '' ) {
+			return Html::element( 'td', [], '' );
+		}
+		$html = Html::openElement( 'td' );
+		$html .= Html::element( 'a', [
+			'href' => '#',
+			'class' => 'rd-download-original',
+			'data-filename' => $filename,
+			'data-draft-id' => $draftId,
+			'download' => $filename,
+			'title' => 'Download original file from staging',
+		], $filename );
+		$html .= Html::closeElement( 'td' );
 		return $html;
 	}
 
