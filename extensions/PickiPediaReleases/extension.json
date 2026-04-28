@@ -46,7 +46,8 @@
 		"DeliverOtherContent": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverOtherContent",
 		"DeliverRecord": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverRecord",
 		"DeliverVideo": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverVideo",
-		"DeliverBlueRailroad": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverBlueRailroad"
+		"DeliverBlueRailroad": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliverBlueRailroad",
+		"DeliveryKidAudit": "MediaWiki\\Extension\\PickiPediaReleases\\SpecialDeliveryKidAudit"
 	},
 	"APIModules": {
 		"releaselist": {
@@ -129,6 +130,10 @@
 		"DeliveryKidApiKey": {
 			"value": "",
 			"description": "Shared API key for authenticating with delivery-kid pinning service"
+		},
+		"DeliveryKidAuditUrl": {
+			"value": "https://delivery-kid.cryptograss.live/audit-latest.json",
+			"description": "URL of the JSON blob written by maybelle's audit cron, rendered by Special:DeliveryKidAudit"
 		}
 	},
 	"manifest_version": 2
