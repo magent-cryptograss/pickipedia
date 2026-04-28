@@ -1201,6 +1201,30 @@
 			video.style.display = 'none';
 		}
 
+		// Render the preview_log array from /draft-content into the
+		// rd-preview-log container. Idempotent — replaces contents on
+		// each call so we can safely re-render every poll tick.
+		function renderPreviewLog( log ) {
+			var logEl = el( 'rd-preview-log' );
+			if ( !logEl || !log || !log.length ) {
+				return;
+			}
+			var html = '';
+			log.forEach( function ( entry ) {
+				var ts = ( entry.ts || '' ).replace( 'T', ' ' ).replace( /\..*$/, '' );
+				var pct = entry.progress != null ? ' (' + entry.progress + '%)' : '';
+				html += '<div class="rd-preview-log-entry">' +
+					'<span class="rd-preview-log-ts">' + mw.html.escape( ts ) + '</span> ' +
+					mw.html.escape( entry.message || '' ) +
+					mw.html.escape( pct ) +
+					'</div>';
+			} );
+			logEl.innerHTML = html;
+			logEl.style.display = '';
+			// Scroll the latest line into view.
+			logEl.scrollTop = logEl.scrollHeight;
+		}
+
 		function loadFromStaging() {
 			if ( !token || !filename ) {
 				return false;
@@ -1240,6 +1264,7 @@
 					if ( !data ) {
 						return;
 					}
+					renderPreviewLog( data.preview_log );
 					if ( data.preview_status === 'ready' && data.preview_mp4_cid ) {
 						clearInterval( pollInterval );
 						setVideoSrc( gatewayUrl + '/ipfs/' + data.preview_mp4_cid );
@@ -1298,6 +1323,7 @@
 				if ( !data ) {
 					return;
 				}
+				renderPreviewLog( data.preview_log );
 				if ( data.preview_status === 'ready' && data.preview_mp4_cid ) {
 					setVideoSrc( gatewayUrl + '/ipfs/' + data.preview_mp4_cid );
 					if ( hlsInfo ) {

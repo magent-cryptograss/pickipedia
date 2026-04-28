@@ -324,6 +324,34 @@
 	border-radius: 3px;
 }
 
+/* Live preview-transcode log — populated from /draft-content.preview_log.
+   Empty by default (display:none until JS adds entries). */
+.rd-preview-log {
+	display: none;
+	margin: 0.5em 0 0.75em 0;
+	padding: 0.5em 0.75em;
+	max-height: 12em;
+	overflow-y: auto;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 0.8em;
+	line-height: 1.5;
+	color: #444;
+	background: #f8f9fa;
+	border: 1px solid #e0e0e0;
+	border-radius: 3px;
+}
+
+.rd-preview-log-entry {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.rd-preview-log-ts {
+	color: #888;
+	margin-right: 0.5em;
+}
+
 /* Preserve original checkbox */
 .rd-preserve-label {
 	display: flex;

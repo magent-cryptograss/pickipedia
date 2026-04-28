@@ -562,6 +562,13 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 			'class' => 'rd-preview-status',
 		], '' );
 
+		// Live transcode log — populated by JS from /draft-content's
+		// preview_log field. Empty until the first poll/webhook.
+		$html .= Html::element( 'div', [
+			'id' => 'rd-preview-log',
+			'class' => 'rd-preview-log',
+		], '' );
+
 		$html .= Html::element( 'video', [
 			'id' => 'rd-video-player',
 			'class' => 'rd-video-player',
