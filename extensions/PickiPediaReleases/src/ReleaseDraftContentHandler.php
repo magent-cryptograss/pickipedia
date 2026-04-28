@@ -90,10 +90,10 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		$data = $content->getData();
 		$type = $content->getDraftType();
 
-		// Derive status from context: does a Release page reference this draft?
-		// For now, treat all ReleaseDraft pages as editable drafts.
-		// The JS can check for Release page existence client-side.
-		$status = 'draft';
+		// Status comes from the YAML — set to 'finalized' by the JS once
+		// the SSE 'complete' event fires during finalize. Defaults to
+		// 'draft' for any draft that hasn't been through finalize.
+		$status = $data['status'] ?? 'draft';
 
 		// Validation errors
 		$validation = $content->validate();
@@ -158,11 +158,13 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		$classes = [
 			'draft' => 'rd-status-draft',
 			'finalizing' => 'rd-status-finalizing',
+			'finalized' => 'rd-status-complete',
 			'complete' => 'rd-status-complete',
 		];
 		$labels = [
 			'draft' => 'Draft — not yet finalized',
 			'finalizing' => 'Finalizing — processing in progress',
+			'finalized' => 'Finalized — pinned to IPFS',
 			'complete' => 'Complete — pinned to IPFS',
 		];
 
@@ -171,10 +173,18 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 
 		$type = $data['type'] ?? 'release';
 
-		return Html::rawElement( 'div', [ 'class' => "rd-status-banner $class" ],
-			Html::element( 'span', [ 'class' => 'rd-status-label' ], $label ) .
-			Html::element( 'span', [ 'class' => 'rd-status-type' ], ucfirst( $type ) . ' draft' )
-		);
+		$body = Html::element( 'span', [ 'class' => 'rd-status-label' ], $label ) .
+			Html::element( 'span', [ 'class' => 'rd-status-type' ], ucfirst( $type ) . ' draft' );
+
+		if ( !empty( $data['final_cid'] ) ) {
+			$cid = $data['final_cid'];
+			$body .= ' — ' . Html::rawElement( 'a',
+				[ 'href' => '/wiki/Release:' . rawurlencode( $cid ) ],
+				'Release:' . htmlspecialchars( $cid )
+			);
+		}
+
+		return Html::rawElement( 'div', [ 'class' => "rd-status-banner $class" ], $body );
 	}
 
 	private function renderResult( array $data ): string {

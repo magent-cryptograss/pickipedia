@@ -325,6 +325,20 @@
 			}
 		}
 
+		// Finalize markers — set by showFinalizeResult after the SSE
+		// 'complete' event. Lets the draft page reflect post-finalize
+		// state (rather than asking delivery-kid for staging files
+		// that were already cleaned up by finalize).
+		if ( data.status ) {
+			lines.push( 'status: ' + quoteYamlValue( data.status ) );
+		}
+		if ( data.final_cid ) {
+			lines.push( 'final_cid: ' + quoteYamlValue( data.final_cid ) );
+		}
+		if ( data.finalized_at ) {
+			lines.push( 'finalized_at: ' + quoteYamlValue( data.finalized_at ) );
+		}
+
 		// Type-specific payload
 		if ( draftType === 'record' || draftType === 'album' ) {
 			lines.push( 'album:' );
@@ -833,8 +847,16 @@
 		// Save the draft page (preserving current form data) — no Release page creation.
 		// The bot will create the Release page when it processes completed drafts.
 		var data = collectFormData();
-		var yaml = serializeToYaml( data );
 		var cid = resultData.cid;
+		// Record finalize state so future page loads know the staging dir
+		// is gone (it was wiped by the finalize SSE handler) and can
+		// render the final HLS video instead.
+		if ( cid ) {
+			data.final_cid = cid;
+			data.status = 'finalized';
+			data.finalized_at = new Date().toISOString();
+		}
+		var yaml = serializeToYaml( data );
 
 		var api = new mw.Api();
 		api.postWithEditToken( {
@@ -1136,6 +1158,33 @@
 			return;
 		}
 
+		// Finalized drafts: staging dir was wiped by the finalize SSE
+		// handler, so /draft-content will 404. Render the HLS player
+		// for the final CID instead — same machinery as Template:HLSVideo.
+		var finalCid = draftData && draftData.final_cid;
+		if ( finalCid ) {
+			var container = video.parentNode;
+			if ( container ) {
+				container.innerHTML = '';
+				var hlsDiv = document.createElement( 'div' );
+				hlsDiv.className = 'hls-video-player';
+				hlsDiv.setAttribute( 'data-cid', finalCid );
+				hlsDiv.setAttribute( 'data-width', '100%' );
+				hlsDiv.setAttribute( 'data-max-width', '800px' );
+				container.appendChild( hlsDiv );
+				// Common.js HLS hydrator listens on this hook.
+				if ( mw.hook ) {
+					mw.hook( 'wikipage.content' ).fire( $( container ) );
+				}
+				if ( hlsInfo ) {
+					hlsInfo.innerHTML = 'Finalized — pinned at ' +
+						'<a href="' + mw.html.escape( mw.util.getUrl( 'Release:' + finalCid ) ) + '">' +
+						'Release:' + mw.html.escape( finalCid ) + '</a>.';
+				}
+			}
+			return;
+		}
+
 		function setVideoSrc( src ) {
 			video.src = src;
 			video.style.display = '';
@@ -1230,7 +1279,14 @@
 					return null;
 				}
 				if ( resp.status === 404 ) {
-					showPreviewStatus( 'Draft not found on delivery-kid. Files may have expired from staging.' );
+					// Either the draft was finalized (staging cleaned by SSE
+					// handler) but the YAML wasn't updated with final_cid,
+					// or staging just expired. Either way the user should
+					// look at Special:Releases to find the finalized version.
+					showPreviewStatus(
+						'Staging cleaned up — this draft was probably finalized. ' +
+						'Check Special:Releases for the pinned video.'
+					);
 					return null;
 				}
 				if ( !resp.ok ) {
