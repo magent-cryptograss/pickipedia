@@ -109,6 +109,19 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 		// Status banner
 		$html .= $this->renderStatusBanner( $status, $data );
 
+		// Upload-stage and finalize-stage log containers. Empty by default;
+		// JS populates them by polling /draft-content. Keeping them here
+		// (above the type-specific form) means they're visible even when
+		// no video file is yet present (e.g. status: awaiting_upload).
+		$html .= Html::element( 'div', [
+			'id' => 'rd-upload-log',
+			'class' => 'rd-stage-log rd-upload-log',
+		], '' );
+		$html .= Html::element( 'div', [
+			'id' => 'rd-finalize-log',
+			'class' => 'rd-stage-log rd-finalize-log',
+		], '' );
+
 		// Type-specific form
 		if ( $type === 'record' || $type === 'album' ) {
 			$html .= $this->renderAlbumForm( $data, $status );
@@ -156,14 +169,22 @@ class ReleaseDraftContentHandler extends TextContentHandler {
 
 	private function renderStatusBanner( string $status, array $data ): string {
 		$classes = [
+			'awaiting_upload' => 'rd-status-awaiting-upload',
+			'uploading' => 'rd-status-uploading',
+			'upload_failed' => 'rd-status-failed',
 			'draft' => 'rd-status-draft',
 			'finalizing' => 'rd-status-finalizing',
+			'finalize_failed' => 'rd-status-failed',
 			'finalized' => 'rd-status-complete',
 			'complete' => 'rd-status-complete',
 		];
 		$labels = [
+			'awaiting_upload' => 'Awaiting upload — draft initialised, no bytes received yet',
+			'uploading' => 'Uploading — bytes in flight',
+			'upload_failed' => 'Upload failed — see upload log below',
 			'draft' => 'Draft — not yet finalized',
 			'finalizing' => 'Finalizing — processing in progress',
+			'finalize_failed' => 'Finalize failed — see finalize log below',
 			'finalized' => 'Finalized — pinned to IPFS',
 			'complete' => 'Complete — pinned to IPFS',
 		];

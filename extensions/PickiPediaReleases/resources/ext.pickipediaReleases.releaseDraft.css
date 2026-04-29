@@ -352,6 +352,59 @@
 	margin-right: 0.5em;
 }
 
+/* Upload-stage and finalize-stage logs (mirrored from delivery-kid's
+   ContentDraftState.upload_log / finalize_log). Same monospace look as
+   the preview log; shown above the form so they're visible even when
+   the draft has no video preview yet. */
+.rd-stage-log {
+	display: none;
+	margin: 0.5em 0 0.75em 0;
+	padding: 0.5em 0.75em;
+	max-height: 14em;
+	overflow-y: auto;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 0.8em;
+	line-height: 1.5;
+	color: #444;
+	background: #f8f9fa;
+	border: 1px solid #e0e0e0;
+	border-radius: 3px;
+}
+
+.rd-stage-log-title {
+	font-weight: 600;
+	color: #222;
+	margin-bottom: 0.25em;
+	font-family: inherit;
+	font-size: 0.95em;
+}
+
+.rd-stage-log-entry {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.rd-stage-log-error {
+	color: #a00;
+}
+
+.rd-stage-log-ts {
+	color: #888;
+	margin-right: 0.5em;
+}
+
+.rd-stage-log-stage {
+	color: #1a4480;
+	margin-right: 0.4em;
+	font-weight: 600;
+}
+
+.rd-stage-log-errtext {
+	color: #a00;
+	font-style: italic;
+}
+
 /* Preserve original checkbox */
 .rd-preserve-label {
 	display: flex;

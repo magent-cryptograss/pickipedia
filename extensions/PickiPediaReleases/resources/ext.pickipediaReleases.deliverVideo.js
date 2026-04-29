@@ -223,6 +223,38 @@
 		} );
 	}
 
+	// Parse a delivery-kid HTTPException response into a readable string.
+	function parseDkError( xhr ) {
+		try {
+			var err = JSON.parse( xhr.responseText );
+			var detail = err.detail;
+			if ( typeof detail === 'string' ) {
+				return detail;
+			}
+			if ( detail && detail.error ) {
+				return detail.error;
+			}
+			if ( Array.isArray( detail ) ) {
+				return detail.map( function ( d ) { return d.msg || JSON.stringify( d ); } ).join( '; ' );
+			}
+			return JSON.stringify( err );
+		} catch ( e ) {
+			return xhr.status + ' ' + xhr.statusText + ': ' + ( xhr.responseText || '' ).slice( 0, 200 );
+		}
+	}
+
+	// Build a stub draft object so createReleaseDraftPage can write a YAML
+	// page even before any files have been analysed. The draft_id matches
+	// the one returned by /init, so the subsequent file POST + final YAML
+	// update both target the same ReleaseDraft page.
+	function stubDraft( draftId, commit ) {
+		return {
+			draft_id: draftId,
+			files: [],
+			commit: commit || 'unknown'
+		};
+	}
+
 	function doUpload( files ) {
 		var uploadBtn = el( 'dv-upload-btn' );
 		var cancelBtn = el( 'dv-cancel-btn' );
@@ -230,6 +262,55 @@
 		var progressFill = progressBar.querySelector( '.uc-progress-fill' );
 
 		uploadBtn.disabled = true;
+		setStatus( 'dv-upload-status', 'Initialising draft...', '' );
+
+		// Step 1: re-upload mode reuses the existing draft_id and skips /init.
+		// Fresh-upload mode mints a draft_id via /init and creates the
+		// ReleaseDraft page BEFORE pushing bytes — so an upload that fails
+		// later still leaves an inspectable wiki page + draft.json record.
+		if ( REDRAFT_ID ) {
+			beginFileUpload( files, REDRAFT_ID, /* createPageFirst */ false, /* commit */ null );
+			return;
+		}
+
+		fetch( API_URL + '/draft-content/init', {
+			method: 'POST',
+			headers: AUTH_HEADERS
+		} ).then( function ( resp ) {
+			if ( !resp.ok ) {
+				return resp.text().then( function ( txt ) {
+					throw new Error( 'init failed (' + resp.status + '): ' + txt.slice( 0, 200 ) );
+				} );
+			}
+			return resp.json();
+		} ).then( function ( draft ) {
+			var draftId = draft.draft_id;
+			setStatus( 'dv-upload-status', 'Creating ReleaseDraft page...', '' );
+			return createReleaseDraftPage( stubDraft( draftId, draft.commit ),
+				/* andRedirect */ false ).then( function () {
+				return { draftId: draftId, commit: draft.commit };
+			} );
+		} ).then( function ( res ) {
+			beginFileUpload( files, res.draftId, /* createPageFirst */ false, res.commit );
+		} ).catch( function ( err ) {
+			setStatus( 'dv-upload-status',
+				'Could not start upload: ' + ( err && err.message ? err.message : String( err ) ),
+				'error' );
+			uploadBtn.disabled = false;
+		} );
+	}
+
+	// Push file bytes to /draft-content with X-Draft-Id pointing at an
+	// already-initialised draft. On success, updates the ReleaseDraft page
+	// YAML with the analysed file list. On failure, surfaces the error and
+	// links the user to the (already-existing) ReleaseDraft page so they
+	// can see the upload_log.
+	function beginFileUpload( files, draftId, createPageFirst, knownCommit ) {
+		var uploadBtn = el( 'dv-upload-btn' );
+		var cancelBtn = el( 'dv-cancel-btn' );
+		var progressBar = el( 'dv-upload-progress' );
+		var progressFill = progressBar.querySelector( '.uc-progress-fill' );
+
 		cancelBtn.style.display = '';
 		progressBar.style.display = '';
 		setStatus( 'dv-upload-status', 'Uploading ' + files.length + ' file(s)...', '' );
@@ -242,13 +323,10 @@
 		var xhr = new XMLHttpRequest();
 		xhr.open( 'POST', API_URL + '/draft-content' );
 
-		// Set auth headers
 		Object.keys( AUTH_HEADERS ).forEach( function ( key ) {
 			xhr.setRequestHeader( key, AUTH_HEADERS[ key ] );
 		} );
-		if ( REDRAFT_ID ) {
-			xhr.setRequestHeader( 'X-Draft-Id', REDRAFT_ID );
-		}
+		xhr.setRequestHeader( 'X-Draft-Id', draftId );
 
 		xhr.upload.addEventListener( 'progress', function ( e ) {
 			if ( e.lengthComputable ) {
@@ -265,39 +343,38 @@
 			cancelBtn.style.display = 'none';
 
 			if ( xhr.status !== 200 ) {
-				var errMsg;
-				try {
-					var err = JSON.parse( xhr.responseText );
-					var detail = err.detail;
-					if ( typeof detail === 'string' ) {
-						errMsg = detail;
-					} else if ( detail && detail.error ) {
-						errMsg = detail.error;
-					} else if ( Array.isArray( detail ) ) {
-						errMsg = detail.map( function ( d ) { return d.msg || JSON.stringify( d ); } ).join( '; ' );
-					} else {
-						errMsg = JSON.stringify( err );
-					}
-				} catch ( e ) {
-					errMsg = xhr.status + ' ' + xhr.statusText + ': ' + xhr.responseText.slice( 0, 200 );
-				}
+				var errMsg = parseDkError( xhr );
+				var pageHref = mw.util.getUrl( 'ReleaseDraft:' + draftId );
 				setStatus( 'dv-upload-status',
-					'Upload failed (' + xhr.status + '): ' + errMsg, 'error' );
+					'Upload failed (' + xhr.status + '): ' + errMsg +
+					' — see the draft page for the full upload log: ' + pageHref,
+					'error' );
 				uploadBtn.disabled = false;
 				return;
 			}
 
 			var draft = JSON.parse( xhr.responseText );
+			if ( knownCommit && !draft.commit ) {
+				draft.commit = knownCommit;
+			}
 			setStatus( 'dv-upload-status',
-				'Draft created. ' + draft.files.length + ' file(s) analyzed. Creating draft page...', 'success' );
+				'Upload complete. ' + draft.files.length + ' file(s) analysed. Updating draft page...',
+				'success' );
 
-			createReleaseDraftPage( draft );
+			// In re-upload mode (createPageFirst === true) we still call
+			// createReleaseDraftPage to write the full YAML — it handles
+			// articleexists by editing.
+			createReleaseDraftPage( draft, /* andRedirect */ true );
 		} );
 
 		xhr.addEventListener( 'error', function () {
 			progressBar.style.display = 'none';
 			cancelBtn.style.display = 'none';
-			setStatus( 'dv-upload-status', 'Network error during upload.', 'error' );
+			var pageHref = mw.util.getUrl( 'ReleaseDraft:' + draftId );
+			setStatus( 'dv-upload-status',
+				'Network error during upload — the draft page exists at ' + pageHref +
+				' and any partial log will be visible there.',
+				'error' );
 			uploadBtn.disabled = false;
 		} );
 
@@ -316,38 +393,52 @@
 		xhr.send( formData );
 	}
 
-	// -- Create ReleaseDraft wiki page and redirect --
-
-	function createReleaseDraftPage( draft ) {
+	// -- Create / update ReleaseDraft wiki page --
+	//
+	// Called twice in the new flow:
+	//   1. Right after /init returns a draft_id, with an empty `draft.files`
+	//      list. Writes a stub YAML (status: awaiting_upload) so the page
+	//      exists before bytes are pushed. Resolves without redirecting so
+	//      the upload can proceed.
+	//   2. After the file POST returns 200 with analysed files, with the
+	//      full draft. Updates the page YAML and redirects to it.
+	//
+	// In re-upload mode (REDRAFT_ID is set) only the second call happens.
+	function createReleaseDraftPage( draft, andRedirect ) {
 		var draftId = draft.draft_id;
 		var pageName = 'ReleaseDraft:' + draftId;
-
 		var yaml = buildVideoYaml( draftId, draft );
+		var isStub = !draft.files || draft.files.length === 0;
 
-		var isRedraft = !!REDRAFT_ID;
+		var summary;
+		if ( isStub ) {
+			summary = 'Init draft (awaiting upload)';
+		} else if ( REDRAFT_ID ) {
+			summary = 'Re-upload: ' + draft.files.length + ' file(s) uploaded';
+		} else {
+			summary = 'Upload complete: ' + draft.files.length + ' file(s) analysed';
+		}
+
 		var editParams = {
 			action: 'edit',
 			title: pageName,
 			text: yaml,
-			summary: isRedraft
-				? 'Re-upload: ' + draft.files.length + ' file(s) uploaded'
-				: 'New video draft: ' + draft.files.length + ' file(s) uploaded'
+			summary: summary
 		};
-		if ( !isRedraft ) {
-			editParams.createonly = true;
-		}
 
 		var api = new mw.Api();
-		api.postWithEditToken( editParams ).then( function () {
-			window.location.href = mw.util.getUrl( pageName );
-		} ).fail( function ( code, result ) {
-			if ( code === 'articleexists' && !isRedraft ) {
+		return api.postWithEditToken( editParams ).then( function () {
+			if ( andRedirect ) {
 				window.location.href = mw.util.getUrl( pageName );
-			} else {
-				setStatus( 'dv-upload-status',
-					'Failed to save draft page: ' + ( result.error ? result.error.info : code ), 'error' );
-				el( 'dv-upload-btn' ).disabled = false;
 			}
+		} ).catch( function ( code, result ) {
+			// `articleexists` only fires when createonly is set; we don't
+			// set it any more, so any failure here is real.
+			var info = ( result && result.error ) ? result.error.info : code;
+			setStatus( 'dv-upload-status',
+				'Failed to save draft page: ' + info, 'error' );
+			el( 'dv-upload-btn' ).disabled = false;
+			throw new Error( info );
 		} );
 	}
 
@@ -370,6 +461,12 @@
 		lines.push( 'draft_id: ' + draftId );
 		lines.push( 'type: video' );
 		lines.push( 'source: special-deliver-video' );
+		// status: explicit for stub pages so renderers know the upload is
+		// still pending. After bytes are saved this YAML is rewritten with
+		// no status field, falling back to the PHP default ('draft').
+		if ( !draft.files || draft.files.length === 0 ) {
+			lines.push( 'status: awaiting_upload' );
+		}
 		// commit: the maybelle-config build hash that delivery-kid reports
 		lines.push( 'commit: ' + ( draft.commit || 'unknown' ) );
 		lines.push( 'uploader: ' + quoteYamlValue( mw.config.get( 'wgUploadUser' ) || '' ) );

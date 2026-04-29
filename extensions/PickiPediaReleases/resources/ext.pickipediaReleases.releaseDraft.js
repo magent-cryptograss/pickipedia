@@ -1480,6 +1480,108 @@
 		}
 	}
 
+	// Render upload_log and finalize_log entries from a /draft-content
+	// response into their respective containers. Idempotent — replaces
+	// contents on each call so repeated polls just refresh the view.
+	function renderStageLog( containerId, title, entries ) {
+		var logEl = document.getElementById( containerId );
+		if ( !logEl ) {
+			return;
+		}
+		if ( !entries || !entries.length ) {
+			logEl.style.display = 'none';
+			return;
+		}
+		var html = '<div class="rd-stage-log-title">' + mw.html.escape( title ) + '</div>';
+		entries.forEach( function ( entry ) {
+			var ts = ( entry.ts || '' ).replace( 'T', ' ' ).replace( /\..*$/, '' );
+			var stage = entry.stage || entry.phase || '';
+			var msg = entry.message || '';
+			var pct = ( entry.progress != null ) ? ' (' + entry.progress + '%)' : '';
+			var entryClass = 'rd-stage-log-entry';
+			if ( entry.error ) {
+				entryClass += ' rd-stage-log-error';
+			}
+			html += '<div class="' + entryClass + '">' +
+				'<span class="rd-stage-log-ts">' + mw.html.escape( ts ) + '</span> ' +
+				( stage ? '<span class="rd-stage-log-stage">' + mw.html.escape( stage ) + '</span> ' : '' ) +
+				mw.html.escape( msg ) +
+				mw.html.escape( pct );
+			if ( entry.error && entry.error !== msg ) {
+				html += ' <span class="rd-stage-log-errtext">' + mw.html.escape( entry.error ) + '</span>';
+			}
+			html += '</div>';
+		} );
+		logEl.innerHTML = html;
+		logEl.style.display = '';
+		logEl.scrollTop = logEl.scrollHeight;
+	}
+
+	// Poll /draft-content for upload_log + finalize_log + status. Runs
+	// on every ReleaseDraft page that has a draft_id, even when no video
+	// preview is rendered (e.g. status: awaiting_upload before any bytes).
+	// Stops polling once we hit a terminal state.
+	function initStageLogs() {
+		var draftId = ( draftData && draftData.draft_id ) || '';
+		if ( !draftId ) {
+			return;
+		}
+		var deliveryKidUrl = mw.config.get( 'wgDeliveryKidUrl' );
+		if ( !deliveryKidUrl ) {
+			return;
+		}
+		var token = mw.config.get( 'wgFinalizeToken' ) || mw.config.get( 'wgUploadToken' );
+		if ( !token ) {
+			return;
+		}
+		var headers = {
+			'X-Upload-Token': token,
+			'X-Upload-User': mw.config.get( 'wgUploadUser' ),
+			'X-Upload-Timestamp': String( mw.config.get( 'wgUploadTimestamp' ) )
+		};
+
+		// If the wiki YAML already says finalized, the staging dir is gone
+		// and there's nothing left to poll for. Skip.
+		if ( draftData.status === 'finalized' || draftData.final_cid ) {
+			return;
+		}
+
+		var poll = function () {
+			fetch( deliveryKidUrl + '/draft-content/' + draftId, {
+				headers: headers
+			} ).then( function ( resp ) {
+				if ( resp.status === 404 ) {
+					// Staging cleaned up — nothing more to render. The
+					// existing wgReleaseDraftData stays as fallback.
+					return null;
+				}
+				if ( !resp.ok ) {
+					return null;
+				}
+				return resp.json();
+			} ).then( function ( data ) {
+				if ( !data ) {
+					return;
+				}
+				renderStageLog( 'rd-upload-log', 'Upload log', data.upload_log );
+				renderStageLog( 'rd-finalize-log', 'Finalize log', data.finalize_log );
+				// Stop polling on terminal states.
+				var s = data.status;
+				if ( s === 'upload_failed' || s === 'finalize_failed' || s === 'finalized' ) {
+					if ( pollInterval ) {
+						clearInterval( pollInterval );
+					}
+				}
+			} ).catch( function () {
+				// Silently retry on next tick.
+			} );
+		};
+
+		// Initial render uses whatever data is available, then poll.
+		poll();
+		var pollInterval = setInterval( poll, 5000 );
+	}
+
 	function init() {
 		initTrackDragReorder();
 		initSaveButton();
@@ -1489,6 +1591,7 @@
 		initCreationTimeFallback();
 		initDownloadLinks();
 		initAbandonButtons();
+		initStageLogs();
 	}
 
 	mw.loader.using( [ 'mediawiki.util', 'mediawiki.api' ] ).then( init );
