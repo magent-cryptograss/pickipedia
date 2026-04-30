@@ -11,7 +11,7 @@
 
 namespace MediaWiki\Extension\PickiPediaRecordingMetadata;
 
-use MediaWiki\Hook\ContentHandlerDefaultModelForHook;
+use MediaWiki\Revision\Hook\ContentHandlerDefaultModelForHook;
 
 class Hooks implements ContentHandlerDefaultModelForHook {
 
