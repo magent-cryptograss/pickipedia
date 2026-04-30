@@ -26,5 +26,22 @@
 	"MessagesDirs": {
 		"PickiPediaRecordingMetadata": ["i18n"]
 	},
+	"ResourceModules": {
+		"ext.pickipediaRecordingMetadata.editor": {
+			"packageFiles": [
+				"editor/main.js",
+				"editor/EditableTrackData.js",
+				"editor/TimelineEditor.js",
+				"editor/keyboard-shortcuts.js",
+				"editor/js-yaml.min.js"
+			],
+			"styles": ["editor/editor.css"],
+			"dependencies": ["mediawiki.api", "mediawiki.util"]
+		}
+	},
+	"ResourceFileModulePaths": {
+		"localBasePath": "resources",
+		"remoteExtPath": "PickiPediaRecordingMetadata/resources"
+	},
 	"manifest_version": 2
 }

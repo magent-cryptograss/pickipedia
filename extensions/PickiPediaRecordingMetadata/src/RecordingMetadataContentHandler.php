@@ -86,15 +86,47 @@ class RecordingMetadataContentHandler extends TextContentHandler {
 			);
 		}
 
-		// Stub render — interactive editor lands in a follow-up commit.
-		$html .= Html::openElement( 'div', [ 'class' => 'rm-editor-stub' ] );
+		// Mount points hydrated by the editor JS. The editor reads the
+		// page's YAML from wgRecordingMetadataYaml (set below) — not from
+		// any of these elements — so they can start empty.
+		$html .= Html::openElement( 'div', [ 'class' => 'rm-editor-shell' ] );
 		$html .= Html::element( 'h2', [], 'Recording Metadata' );
-		$html .= Html::element( 'p', [],
-			'Interactive timeline editor will mount here. Raw YAML is shown '
-			. 'below for now; edit via the Edit tab to change it.' );
-		$html .= Html::element( 'pre', [ 'class' => 'rm-yaml-raw' ],
-			$content->getText() );
+
+		// Container the TimelineEditor mounts inside.
+		$html .= Html::element( 'div', [ 'id' => 'rm-editor-root' ], '' );
+
+		// Save bar.
+		$html .= Html::openElement( 'div', [ 'class' => 'rm-actions' ] );
+		$html .= Html::element( 'button', [
+			'type' => 'button',
+			'id' => 'rm-save-btn',
+			'class' => 'cdx-button cdx-button--action-progressive',
+			'disabled' => true,
+		], 'Saved' );
+		$html .= Html::element( 'span', [
+			'id' => 'rm-save-status',
+			'class' => 'rm-save-status',
+		], '' );
 		$html .= Html::closeElement( 'div' );
+
+		// Keyboard help (KeyboardShortcuts.getHelpHTML fills this in).
+		$html .= Html::element( 'div', [
+			'id' => 'rm-keyboard-help',
+			'class' => 'rm-keyboard-help',
+		], '' );
+
+		// Raw YAML, collapsed — for inspection / copy-paste.
+		$html .= Html::rawElement( 'details', [ 'class' => 'rm-raw-yaml' ],
+			Html::element( 'summary', [], 'Raw YAML' )
+			. Html::element( 'pre', [], $content->getText() )
+		);
+
+		$html .= Html::closeElement( 'div' );
+
+		// Hand the YAML to the editor JS via JsConfigVar (avoids a
+		// round-trip back to fetch what the parser already read).
+		$output->setJsConfigVar( 'wgRecordingMetadataYaml', $content->getText() );
+		$output->addModules( [ 'ext.pickipediaRecordingMetadata.editor' ] );
 
 		$output->setRawText( $html );
 	}
