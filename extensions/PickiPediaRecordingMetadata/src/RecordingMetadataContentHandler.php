@@ -126,6 +126,18 @@ class RecordingMetadataContentHandler extends TextContentHandler {
 		// Hand the YAML to the editor JS via JsConfigVar (avoids a
 		// round-trip back to fetch what the parser already read).
 		$output->setJsConfigVar( 'wgRecordingMetadataYaml', $content->getText() );
+
+		// Parent Release page — derived from the title by chopping the
+		// "/Metadata" suffix. The editor JS uses this to fetch the
+		// parent's YAML for audio CIDs (so it can wire up playback).
+		$title = $cpoParams->getPage();
+		$dbkey = $title ? $title->getDBkey() : '';
+		if ( str_ends_with( $dbkey, '/Metadata' ) ) {
+			$parentDbkey = substr( $dbkey, 0, -strlen( '/Metadata' ) );
+			$output->setJsConfigVar( 'wgRecordingMetadataParentTitle',
+				'Release:' . $parentDbkey );
+		}
+
 		$output->addModules( [ 'ext.pickipediaRecordingMetadata.editor' ] );
 
 		$output->setRawText( $html );

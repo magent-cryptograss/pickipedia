@@ -15,6 +15,85 @@ const EditableTrackData = require( './EditableTrackData.js' );
 const TimelineEditor = require( './TimelineEditor.js' );
 const KeyboardShortcuts = require( './keyboard-shortcuts.js' );
 
+/**
+ * Adapter that lets TimelineEditor drive a plain HTMLAudioElement.
+ *
+ * TimelineEditor expects a player exposing `onTimeUpdate(callback)`,
+ * `webamp.store.getState()`, and `webamp.store.dispatch({type, ...})`
+ * — that's the rabbithole-side WebampChartifacts shape. This adapter
+ * wraps an <audio> tag in just enough of that surface to satisfy the
+ * editor's seek/play/timeupdate paths.
+ */
+class AudioPlayerAdapter {
+	constructor( audioEl ) {
+		this.audioEl = audioEl;
+		this._timeUpdateCallback = null;
+		audioEl.addEventListener( 'timeupdate', () => {
+			if ( this._timeUpdateCallback ) {
+				this._timeUpdateCallback( audioEl.currentTime );
+			}
+		} );
+		this.webamp = {
+			store: {
+				getState: () => ( {
+					media: { length: audioEl.duration || 0 }
+				} ),
+				dispatch: ( action ) => {
+					if ( !audioEl.duration ) {
+						return;
+					}
+					if ( action.type === 'SEEK_TO_PERCENT_COMPLETE' ) {
+						audioEl.currentTime = ( action.percent / 100 ) * audioEl.duration;
+					} else if ( action.type === 'PLAY' ) {
+						audioEl.play();
+					} else if ( action.type === 'PAUSE' ) {
+						audioEl.pause();
+					}
+				}
+			}
+		};
+	}
+
+	onTimeUpdate( callback ) {
+		this._timeUpdateCallback = callback;
+	}
+
+	updateTimeline() {
+		// No-op — the editor only has its own visualization, no separate
+		// player UI on this page that needs the timeline pushed to it.
+	}
+}
+
+const IPFS_GATEWAY = 'https://ipfs.delivery-kid.cryptograss.live';
+
+async function fetchParentEncodings( parentTitle ) {
+	if ( !parentTitle ) {
+		return null;
+	}
+	try {
+		const api = new mw.Api();
+		const result = await api.get( {
+			action: 'query',
+			titles: parentTitle,
+			prop: 'revisions',
+			rvprop: 'content',
+			rvslots: 'main',
+			format: 'json'
+		} );
+		const pages = result.query?.pages || {};
+		const page = Object.values( pages )[ 0 ];
+		if ( !page || page.missing !== undefined ) {
+			return null;
+		}
+		const text = page.revisions?.[ 0 ]?.slots?.main?.[ '*' ] || '';
+		const data = jsYaml.load( text ) || {};
+		return data.encodings || null;
+	} catch ( e ) {
+		mw.log.warn( '[recording-metadata] could not fetch parent encodings:', e );
+		return null;
+	}
+}
+
 function init() {
 	const root = document.getElementById( 'rm-editor-root' );
 	if ( !root ) {
@@ -55,10 +134,42 @@ function init() {
 		}
 	} );
 
-	// No player on this page (yet) — TimelineEditor's player coupling is
-	// guarded with `if (this.player)`, so passing null degrades gracefully:
-	// the seek/play buttons become no-ops, the time-update highlight stops.
+	// Editor first; we'll wire audio in after fetching parent encodings.
 	const editor = new TimelineEditor( 'rm-editor-root', editableData, null );
+
+	// Audio playback: fetch the parent Release page's YAML, find the OGG
+	// encoding CID, drop an <audio> on the page and wrap it in an adapter
+	// the TimelineEditor can drive. If anything fails (no parent, no OGG,
+	// fetch error), we fall back to a player-less editor — TimelineEditor's
+	// player coupling is guarded with `if (this.player)`.
+	const parentTitle = mw.config.get( 'wgRecordingMetadataParentTitle' );
+
+	const audioMount = document.createElement( 'div' );
+	audioMount.className = 'rm-audio-mount';
+	root.parentNode.insertBefore( audioMount, root );
+
+	fetchParentEncodings( parentTitle ).then( ( encodings ) => {
+		if ( !encodings || !encodings.ogg ) {
+			audioMount.innerHTML = '<p class="rm-audio-missing">No OGG encoding found for parent ' +
+				mw.html.escape( parentTitle || '?' ) + ' — editor runs in YAML-only mode.</p>';
+			return;
+		}
+		const audioEl = document.createElement( 'audio' );
+		audioEl.controls = true;
+		audioEl.preload = 'metadata';
+		audioEl.className = 'rm-audio';
+		audioEl.src = IPFS_GATEWAY + '/ipfs/' + encodings.ogg;
+		audioMount.appendChild( audioEl );
+
+		// Hand the adapter to the editor. The editor was constructed with
+		// null; we mutate its `.player` and attach the timeupdate callback
+		// so seek-to-marker and play-from-marker start working. (The editor
+		// reads this.player on each call, so this is safe — no re-render
+		// needed.)
+		const player = new AudioPlayerAdapter( audioEl );
+		editor.player = player;
+		player.onTimeUpdate( editor._onTimeUpdate );
+	} );
 
 	const shortcuts = new KeyboardShortcuts( editor, editableData, {
 		onSave: save
