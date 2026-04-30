@@ -95,8 +95,7 @@ function init() {
 			title: title,
 			text: newYaml,
 			summary: 'Update recording metadata via editor',
-			contentmodel: 'recording-metadata-yaml',
-			contentformat: 'text/x-yaml'
+			contentmodel: 'recording-metadata-yaml'
 		} ).then( function () {
 			editableData.markSaved();
 			if ( saveStatus ) {
