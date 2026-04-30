@@ -273,6 +273,11 @@ if ( getenv('DELIVERY_KID_API_KEY') ) {
 	$wgDeliveryKidApiKey = getenv('DELIVERY_KID_API_KEY');
 }
 
+# PickiPediaRecordingMetadata - per-recording timeline + ensemble editor.
+# Routes Release:*\/Metadata pages to the recording-metadata-yaml content
+# model; loaded after PickiPediaReleases so NS_RELEASE is available.
+wfLoadExtension( 'PickiPediaRecordingMetadata' );
+
 # Echo - notifications for talk page messages, mentions, watchlist changes
 wfLoadExtension( 'Echo' );
 

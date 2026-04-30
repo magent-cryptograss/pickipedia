@@ -1,0 +1,6 @@
+{
+	"@metadata": {
+		"authors": ["CryptoGrass", "Magent"]
+	},
+	"pickipediarecordingmetadata-desc": "Per-recording metadata editor for Release pages. Renders an interactive timeline editor on Release:.../Metadata subpages."
+}

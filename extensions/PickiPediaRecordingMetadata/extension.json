@@ -1,0 +1,30 @@
+{
+	"name": "PickiPediaRecordingMetadata",
+	"version": "0.1.0",
+	"author": ["CryptoGrass", "Magent"],
+	"url": "https://github.com/cryptograss/pickipedia",
+	"descriptionmsg": "pickipediarecordingmetadata-desc",
+	"license-name": "GPL-2.0-or-later",
+	"type": "other",
+	"requires": {
+		"MediaWiki": ">= 1.43.0"
+	},
+	"AutoloadNamespaces": {
+		"MediaWiki\\Extension\\PickiPediaRecordingMetadata\\": "src/"
+	},
+	"ContentHandlers": {
+		"recording-metadata-yaml": "MediaWiki\\Extension\\PickiPediaRecordingMetadata\\RecordingMetadataContentHandler"
+	},
+	"HookHandlers": {
+		"main": {
+			"class": "MediaWiki\\Extension\\PickiPediaRecordingMetadata\\Hooks"
+		}
+	},
+	"Hooks": {
+		"ContentHandlerDefaultModelFor": "main"
+	},
+	"MessagesDirs": {
+		"PickiPediaRecordingMetadata": ["i18n"]
+	},
+	"manifest_version": 2
+}

@@ -17,7 +17,8 @@
 			"id": 3004,
 			"constant": "NS_RELEASE",
 			"name": "Release",
-			"defaultcontentmodel": "release-yaml"
+			"defaultcontentmodel": "release-yaml",
+			"subpages": true
 		},
 		{
 			"id": 3005,
