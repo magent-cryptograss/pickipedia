@@ -730,7 +730,21 @@ class TestNameSplitting:
     def test_splits_multiple_names(self, raw, expected):
         assert split_names(raw) == expected
 
+    @pytest.mark.parametrize("raw,expected", [
+        # A nickname is how somebody is introduced, not who they are. Recorded
+        # both ways they would be two people in the connectome, with neither
+        # page holding the whole picture.
+        ('Mark "Huggy Bear" Lavengood', ["Mark Lavengood"]),
+        ('Jon "Barber" Gutwillig', ["Jon Gutwillig"]),
+        # Curly quotes, as some feeds emit them.
+        ("Jim \u201dDuck\u201d Adkins", ["Jim Adkins"]),
+    ])
+    def test_drops_a_quoted_nickname(self, raw, expected):
+        assert split_names(raw) == expected
+
     @pytest.mark.parametrize("raw", [
+        # An apostrophe is not a nickname quote, and this name has one.
+        "Tim O'Brien",
         # Shared surname — "Natalie" alone is not a name we could link.
         "Natalie and Brittany Haas",
         # What the duo call themselves.

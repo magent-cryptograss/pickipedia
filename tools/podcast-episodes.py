@@ -155,10 +155,24 @@ def extract_guest(title, patterns_for_podcast):
 
 
 def make_page_title(podcast_name, episode_title):
-    """Generate a wiki page title for an episode."""
+    """
+    The wiki page title for an episode: <Podcast>/<Episode>.
+
+    Some shows put their own name at the front of every episode title, which
+    through a subpage title says it twice — "What's The Reason For This
+    Podcast/What's The Reason For This Podcast S2E29 - ...". The parent already
+    says which show it is, so drop the repetition.
+    """
     # Sanitize: remove characters not allowed in MediaWiki titles
     safe_title = re.sub(r'[#<>\[\]|{}]', '', episode_title)
     safe_title = safe_title.strip()
+
+    if safe_title.lower().startswith(podcast_name.lower()):
+        without = safe_title[len(podcast_name):].lstrip(" -–—:")
+        # Unless the show name was the whole title, in which case there is
+        # nothing left to name the page after.
+        if without:
+            safe_title = without
     if len(safe_title) > 120:
         safe_title = safe_title[:120].rsplit(' ', 1)[0]
     return f"{podcast_name}/{safe_title}"
@@ -191,10 +205,15 @@ def make_wikitext(podcast_name, episode, guests):
         key = "topic" if i == 0 else f"topic{i+1}"
         params.append(f"|{key}={topic}")
 
-    # Clean description (strip HTML tags/entities, truncate)
-    desc = re.sub(r'<[^>]+>', '', episode.get("description", ""))
+    # Clean description (strip HTML tags/entities, truncate).
+    #
+    # Tags become a space, not nothing. Show notes are paragraphs, and dropping
+    # a </p> without leaving anything behind runs the sentences together —
+    # "...exactly who he is.This one gets..."
     import html
+    desc = re.sub(r'<[^>]+>', ' ', episode.get("description", ""))
     desc = html.unescape(desc)
+    desc = re.sub(r'\s+', ' ', desc).strip()
     if len(desc) > 500:
         desc = desc[:500].rsplit(' ', 1)[0] + "..."
     if desc:

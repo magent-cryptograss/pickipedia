@@ -32,6 +32,17 @@ TRAILING_VAGUE_RE = re.compile(
 )
 
 
+# A nickname in quotes is part of how somebody is introduced, not part of who
+# they are. "Mark \"Huggy Bear\" Lavengood" and "Mark Lavengood" are one
+# person, and recording them as two topics would give the connectome two of
+# him with neither page holding the whole picture. The nickname is not lost —
+# the episode title carries it, and it belongs on the person's own page as a
+# fact about them rather than inside their address.
+#
+# Double quotes only, straight or curly. Apostrophes are load-bearing in names
+# like Tim O'Brien.
+NICKNAME_RE = re.compile(r'\s*["\u201c\u201d][^"\u201c\u201d]*["\u201c\u201d]\s*')
+
 # Some patterns capture the word that introduced the name along with it, and
 # "feat. Cory Walker" is not a person. Stripped per-part rather than once up
 # front, because it can appear after a separator: "East Nash Grass, feat. Cory
@@ -69,10 +80,12 @@ def split_names(raw):
     if not name:
         return []
 
-    parts = [LEADING_FEAT_RE.sub("", part).strip() for part in SEPARATOR_RE.split(name)]
+    parts = [LEADING_FEAT_RE.sub("", part) for part in SEPARATOR_RE.split(name)]
+    parts = [NICKNAME_RE.sub(" ", part).strip() for part in parts]
     parts = [part for part in parts if part]
 
     if len(parts) > 1 and all(len(part.split()) >= 2 for part in parts):
         return parts
 
-    return [LEADING_FEAT_RE.sub("", name).strip() or name]
+    single = NICKNAME_RE.sub(" ", LEADING_FEAT_RE.sub("", name)).strip()
+    return [single or name]
